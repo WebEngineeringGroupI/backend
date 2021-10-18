@@ -32,10 +32,6 @@ func (s *Shortener) HashFromURL(aLongURL string) *ShortURL {
 	return shortURL
 }
 
-type ShortURLRepository interface {
-	FindByHash(hash string) *ShortURL
-	Save(url *ShortURL)
-}
 
 func NewShortener(repository ShortURLRepository) *Shortener {
 	return &Shortener{
