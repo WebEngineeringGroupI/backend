@@ -9,6 +9,6 @@ var (
 )
 
 type ShortURLRepository interface {
-	FindByHash(hash string) *ShortURL
-	Save(url *ShortURL)
+	FindByHash(hash string) (*ShortURL, error)
+	Save(url *ShortURL) error
 }

@@ -5,6 +5,7 @@ import (
 	. `github.com/onsi/gomega`
 
 	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
+	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory`
 )
 
 var _ = Describe("URL shortener", func() {
@@ -14,7 +15,7 @@ var _ = Describe("URL shortener", func() {
 	)
 
 	BeforeEach(func() {
-		repository = &FakeShortURLRepository{ urls: map[string]*url.ShortURL{} }
+		repository = inmemory.NewRepository()
 		shortener = url.NewShortener(repository)
 	})
 
@@ -54,7 +55,9 @@ var _ = Describe("URL shortener", func() {
 		It("stores the short URL in a repository", func() {
 			shortURL := shortener.HashFromURL("https://unizar.es")
 
-			expectedURLInRepo := repository.FindByHash(shortURL.Hash)
+			expectedURLInRepo, err := repository.FindByHash(shortURL.Hash)
+
+			Expect(err).To(Succeed())
 			Expect(expectedURLInRepo.Hash).To(Equal(shortURL.Hash))
 		})
 
@@ -62,21 +65,3 @@ var _ = Describe("URL shortener", func() {
 		// TODO(german): What's the meaning of Safe and Sponsor in the original urlshortener implementation
 	})
 })
-
-type FakeShortURLRepository struct {
-	urls map[string]*url.ShortURL
-}
-
-func (f *FakeShortURLRepository) Save(url *url.ShortURL) {
-	f.urls[url.Hash] = url
-}
-
-func (f *FakeShortURLRepository) FindByHash(hash string) *url.ShortURL {
-	url, ok := f.urls[hash]
-	if !ok {
-		return nil
-	}
-
-	return url
-}
-

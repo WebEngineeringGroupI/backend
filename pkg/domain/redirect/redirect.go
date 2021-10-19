@@ -1,8 +1,11 @@
 package redirect
 
 import (
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	`errors`
+	`fmt`
 	"strings"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 type Redirector struct {
@@ -13,11 +16,19 @@ func NewRedirector(repository url.ShortURLRepository) *Redirector {
 	return &Redirector{repository: repository}
 }
 
-func (r *Redirector) ReturnOriginalURL (hash string) string {
+func (r *Redirector) ReturnOriginalURL(hash string) (string, error) {
 	//FindByHash
-	aLongURL := r.repository.FindByHash(hash).LongURL
-	if !strings.HasPrefix(aLongURL, "http://") && !strings.HasPrefix(aLongURL, "https://") {
-		return ""
+	shortURL, err := r.repository.FindByHash(hash)
+	if errors.Is(err, url.ErrShortURLNotFound) {
+		return "", err
 	}
-	return aLongURL
+	if err != nil {
+		return "", fmt.Errorf("unexpected error retrieving original URL: %w", err)
+	}
+
+	aLongURL := shortURL.LongURL
+	if !strings.HasPrefix(aLongURL, "http://") && !strings.HasPrefix(aLongURL, "https://") {
+		return "", nil
+	}
+	return aLongURL, nil
 }
