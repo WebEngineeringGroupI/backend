@@ -10,3 +10,10 @@ type Shorturl struct {
 	CreatedAt time.Time `xorm:"created"`
 	UpdatedAt time.Time `xorm:"updated"`
 }
+
+type Clickdetails struct {
+	Hash		string    	`xorm:"'hash'"`
+	Ip   		string    	`xorm:"'ip'"`
+	CreatedAt time.Time 	`xorm:"created"`
+	UpdatedAt time.Time 	`xorm:"updated"`
+}

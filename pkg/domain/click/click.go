@@ -1,22 +1,19 @@
 package click
 
-import (
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-)
-
-type Logger struct {
-	repository ClickLoggerRepository
+type Clicker struct {
+	repository ClickerRepository
 }
 
-func NewLogger(repository ClickLoggerRepository) *Logger {
-	return &Logger{repository: repository}
+type ClickDetails struct {
+	Hash    string
+	Ip string
 }
 
-func (l *Logger) LogIP(shortURL *url.ShortURL, ip string) {
-	l.repository.Save(shortURL, ip)
+func NewClicker(repository ClickerRepository) *Clicker {
+	return &Clicker{repository: repository}
 }
 
-type ClickLoggerRepository interface {
-	FindByHash(hash string) []string
-	Save(url *url.ShortURL, ip string)
+func (l *Clicker) LogClick(click *ClickDetails) {
+	l.repository.SaveClick(click)
 }
+
