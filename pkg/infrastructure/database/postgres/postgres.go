@@ -3,14 +3,14 @@ package postgres
 import (
 	`errors`
 	`fmt`
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 
 	`github.com/lib/pq`
 	_ "github.com/lib/pq"
 	"xorm.io/xorm"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
-	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/model`
+	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/model`
 )
 
 type ConnectionDetails struct {
@@ -66,9 +66,9 @@ func (d *DB) SaveClick(click *click.ClickDetails) error {
 	return nil
 }
 
-func(d *DB) FindClicksByHash(hash string) ([]*click.ClickDetails,error) {
+func (d *DB) FindClicksByHash(hash string) ([]*click.ClickDetails, error) {
 	var clicksModel []*model.Clickdetails
-	err := d.engine.Find(&clicksModel, model.Clickdetails{Hash:hash})
+	err := d.engine.Find(&clicksModel, model.Clickdetails{Hash: hash})
 	if err != nil {
 		return nil, fmt.Errorf("unknow error finding clicks by hash: %w", err)
 	}
@@ -76,7 +76,7 @@ func(d *DB) FindClicksByHash(hash string) ([]*click.ClickDetails,error) {
 	for _, clickModel := range clicksModel {
 		clicks = append(clicks, model.ClickDetailsToDomain(clickModel))
 	}
-	return clicks,nil
+	return clicks, nil
 }
 
 func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
