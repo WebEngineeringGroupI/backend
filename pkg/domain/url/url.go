@@ -15,6 +15,7 @@ type ShortURL struct {
 	LongURL string
 }
 
+// FIXME(fede): Rename to something like ShortURLFromLong
 func (s *Shortener) HashFromURL(aLongURL string) *ShortURL {
 	if !strings.HasPrefix(aLongURL, "http://") && !strings.HasPrefix(aLongURL, "https://") {
 		return nil
