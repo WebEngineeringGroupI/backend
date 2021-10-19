@@ -1,19 +1,25 @@
 package postgres_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. `github.com/onsi/gomega`
-
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
 	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres`
+	. "github.com/onsi/ginkgo"
+	. `github.com/onsi/gomega`
 )
 
 var _ = Describe("Postgres", func() {
 	var (
+		aShortURL *url.ShortURL
 		repository *postgres.DB
 	)
 
 	BeforeEach(func() {
+		aShortURL = &url.ShortURL{
+			Hash: "12345678",
+			LongURL: "https://google.com",
+		}
+
 		var err error
 		repository, err = postgres.NewDB(postgres.ConnectionDetails{
 			User:     "postgres",
@@ -28,15 +34,10 @@ var _ = Describe("Postgres", func() {
 	})
 
 	It("saves the short URL in the database and retrieves it again", func() {
-		aShortURL := &url.ShortURL{
-			Hash:    "foo",
-			LongURL: "https://google.com",
-		}
-
 		err := repository.Save(aShortURL)
 		Expect(err).To(Succeed())
 
-		retrievedShortURL, err := repository.FindByHash("foo")
+		retrievedShortURL, err := repository.FindByHash("12345678")
 
 		Expect(err).To(Succeed())
 		Expect(retrievedShortURL.Hash).To(Equal(aShortURL.Hash))
@@ -45,11 +46,6 @@ var _ = Describe("Postgres", func() {
 
 	Context("when the short URL already exists in the database", func() {
 		It("doesn't return an error", func() {
-			aShortURL := &url.ShortURL{
-				Hash:    "foo",
-				LongURL: "https://google.com",
-			}
-
 			err := repository.Save(aShortURL)
 			Expect(err).To(Succeed())
 
@@ -66,4 +62,27 @@ var _ = Describe("Postgres", func() {
 			Expect(retrievedShortURL).To(BeNil())
 		})
 	})
+
+	It("Stores click information and retrieves again", func() {
+		click := &click.ClickDetails {
+			Hash: aShortURL.Hash,
+			Ip: "192.168.1.1",
+		}
+		err := repository.SaveClick(click)
+		Expect(err).To(Succeed())
+
+		clicks, err := repository.FindClicksByHash(click.Hash)
+		Expect(err).To(Succeed())
+		Expect(clicks).To(ContainElement(click))
+	})
+
+	Context("when click information doesn't exist in the database", func() {
+		It("doesn't return an error", func() {
+			clicks, err := repository.FindClicksByHash("non_exising_hash")
+			Expect(err).To(Succeed())
+			Expect(clicks).To(BeEmpty())
+		})
+	})
+
 })
+

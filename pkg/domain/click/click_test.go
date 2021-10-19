@@ -9,42 +9,46 @@ import (
 
 var _ = Describe("Click logger", func() {
 	var (
-		logger     *click.Logger
-		repository click.ClickLoggerRepository
-		shortURL   url.ShortURL
+		clicker     *click.Clicker
+		repository click.ClickerRepository
+		aShortURL *url.ShortURL
 	)
 
 	BeforeEach(func() {
-		repository = &FakeClickLoggerRepository{logs: map[string][]string{}}
-		logger = click.NewLogger(repository)
-		shortURL = url.ShortURL{Hash: "12345678", LongURL: "https://google.com"}
+		repository = &FakeClickerRepository{clicks: map[string][]*click.ClickDetails{}}
+		clicker = click.NewClicker(repository)
+		aShortURL = &url.ShortURL{ Hash: "12345678", LongURL: "https://google.com"}
 	})
 
-	Context("when providing a short URL and an @IP", func() {
-		It("stores the the @IP in a repository", func() {
-			ip := "192.168.1.1"
+	Context("when providing click details", func() {
+		It("logs click details in a repository", func() {
 
-			logger.LogIP(&shortURL, ip)
-			log := repository.FindByHash(shortURL.Hash)
-			Expect(log).To(ContainElement(ip))
+			click := &click.ClickDetails {
+				Hash: aShortURL.Hash,
+				Ip : "192.168.1.1",
+			}
+
+			clicker.LogClick(click)
+			clicks := repository.FindClicksByHash(aShortURL.Hash)
+			Expect(clicks).To(ContainElement(click))
 		})
 	})
 
 })
 
-type FakeClickLoggerRepository struct {
-	logs map[string][]string
+type FakeClickerRepository struct {
+	clicks map[string][]*click.ClickDetails
 }
 
-func (f *FakeClickLoggerRepository) Save(url *url.ShortURL, ip string) {
-	f.logs[url.Hash] = append(f.logs[url.Hash], ip)
+func (f *FakeClickerRepository) SaveClick(click *click.ClickDetails) {
+	f.clicks[click.Hash] = append(f.clicks[click.Hash], click)
 }
 
-func (f *FakeClickLoggerRepository) FindByHash(hash string) []string {
-	log, ok := f.logs[hash]
+func (f *FakeClickerRepository) FindClicksByHash(hash string) []*click.ClickDetails {
+	clicks, ok := f.clicks[hash]
 	if !ok {
 		return nil
 	}
 
-	return log
+	return clicks
 }

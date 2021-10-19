@@ -3,6 +3,7 @@ package postgres
 import (
 	`errors`
 	`fmt`
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 
 	`github.com/lib/pq`
 	_ "github.com/lib/pq"
@@ -54,6 +55,28 @@ func (d *DB) FindByHash(hash string) (*url.ShortURL, error) {
 	}
 
 	return model.ShortURLToDomain(shortUrl), nil
+}
+
+func (d *DB) SaveClick(click *click.ClickDetails) error {
+	clickModel := model.ClickDetailsFromDomain(click)
+	_, err := d.engine.Insert(&clickModel)
+	if err != nil {
+		return fmt.Errorf("unknow error saving click: %w", err)
+	}
+	return nil
+}
+
+func(d *DB) FindClicksByHash(hash string) ([]*click.ClickDetails,error) {
+	var clicksModel []*model.Clickdetails
+	err := d.engine.Find(&clicksModel, model.Clickdetails{Hash:hash})
+	if err != nil {
+		return nil, fmt.Errorf("unknow error finding clicks by hash: %w", err)
+	}
+	var clicks []*click.ClickDetails
+	for _, clickModel := range clicksModel {
+		clicks = append(clicks, model.ClickDetailsToDomain(clickModel))
+	}
+	return clicks,nil
 }
 
 func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
