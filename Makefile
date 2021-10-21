@@ -1,11 +1,11 @@
 
 migrate-db:
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-	migrate -path ./database/migrate/ -database "postgres://postgres:root@localhost:5432/postgres?sslmode=disable" up
+	migrate -path ./database/migrate/ -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
 
 run-db:
 	docker pull postgres
-	docker run --name postgres --rm -p 5432:5432 -e POSTGRES_PASSWORD=root postgres &
+	docker run --name postgres --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres &
 
 kill-db:
 	docker rm -f postgres
