@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	`strings`
+	"strings"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/redirect"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"

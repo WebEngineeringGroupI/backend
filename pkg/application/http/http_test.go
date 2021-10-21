@@ -10,7 +10,7 @@ import (
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory`
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
 var _ = Describe("Application / HTTP", func() {
