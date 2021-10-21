@@ -25,14 +25,13 @@ func (s *Shortener) HashFromURL(aLongURL string) *ShortURL {
 	sum := base64.StdEncoding.EncodeToString(bytes[:])
 
 	shortURL := &ShortURL{
-		Hash: sum[0:8],
+		Hash:    sum[0:8],
 		LongURL: aLongURL,
 	}
 
 	s.repository.Save(shortURL)
 	return shortURL
 }
-
 
 func NewShortener(repository ShortURLRepository) *Shortener {
 	return &Shortener{

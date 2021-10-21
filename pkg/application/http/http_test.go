@@ -1,7 +1,6 @@
 package http_test
 
 import (
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 	`io`
 	gohttp `net/http`
 	`net/http/httptest`
@@ -11,6 +10,7 @@ import (
 	. `github.com/onsi/gomega`
 
 	`github.com/WebEngineeringGroupI/backend/pkg/application/http`
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
 var _ = Describe("Application / HTTP", func() {
@@ -18,7 +18,7 @@ var _ = Describe("Application / HTTP", func() {
 		httpEngine *http.Engine
 	)
 
-	BeforeEach(func(){
+	BeforeEach(func() {
 		httpEngine = http.NewEngine("http://example.com", inmemory.NewRepository())
 	})
 	Context("when it retrieves an HTTP request for a short URL", func() {
