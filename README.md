@@ -1,9 +1,8 @@
+# URL Shortener - Backend
 
+This repository contains the backend implementation of a URL Shortener developed for the University of Zaragoza, made by
+the Group I of the year 2021/2022.
 
-## Creating a new DB migration
+## Contributing
 
-TODO: Specify creating the DB migration
-
-migrate create -ext sql -seq <migration_name>
-
-fill up "up" and "down" scripts
+See the contribution guidelines in [CONTRIBUTING.md](./CONTRIBUTING.md).

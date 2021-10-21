@@ -25,7 +25,7 @@ var _ = Describe("Postgres", func() {
 		var err error
 		repository, err = postgres.NewDB(postgres.ConnectionDetails{
 			User:     "postgres",
-			Pass:     "root",
+			Pass:     "postgres",
 			Host:     "localhost",
 			Port:     5432,
 			Database: "postgres",
