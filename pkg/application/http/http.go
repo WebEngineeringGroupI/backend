@@ -23,7 +23,6 @@ func (e *Engine) Shortener() http.HandlerFunc {
 		}
 
 		shortURL := e.urlShortenerService.HashFromURL(dataIn.URL)
-		fmt.Println(shortURL)
 		if shortURL == nil {
 			writer.WriteHeader(http.StatusBadRequest)
 			return
