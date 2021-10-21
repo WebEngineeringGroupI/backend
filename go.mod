@@ -3,9 +3,11 @@ module github.com/WebEngineeringGroupI/backend
 go 1.17
 
 require (
+	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.10.2
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
+	github.com/rs/cors v1.8.0
 	xorm.io/xorm v1.2.5
 )
 

@@ -3,67 +3,81 @@ package http_test
 import (
 	"io"
 	gohttp "net/http"
-	"net/http/httptest"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
 var _ = Describe("Application / HTTP", func() {
 	var (
-		httpEngine *http.Engine
-		recorder   *httptest.ResponseRecorder
+		r                  *testingRouter
+		shortURLRepository url.ShortURLRepository
 	)
-
 	BeforeEach(func() {
-		httpEngine = http.NewEngine("http://example.com", inmemory.NewRepository())
-		recorder = httptest.NewRecorder()
+		shortURLRepository = inmemory.NewRepository()
+		r = newTestingRouter(http.Config{
+			BaseDomain:         "http://example.com",
+			ShortURLRepository: shortURLRepository,
+		})
 	})
 
-	Context("when the handler is the Shortener", func() {
-		var (
-			handler gohttp.HandlerFunc
-		)
-
-		BeforeEach(func() {
-			handler = httpEngine.Shortener()
-		})
-
+	Context("when the handler is the shortener", func() {
 		Context("when it retrieves an HTTP request for a short URL", func() {
 			It("returns the short URL", func() {
-				request := httptest.NewRequest(gohttp.MethodPost, "/api/link", longURLRequest())
+				response := r.doPOSTRequest("/api/link", longURLRequest())
 
-				handler(recorder, request)
-				result := recorder.Result()
+				Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
+				Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
 
-				Expect(result.StatusCode).To(Equal(gohttp.StatusOK))
-				Expect(readAll(result.Body)).To(MatchJSON(longURLResponse()))
+				shortURL, err := shortURLRepository.FindByHash("lxqrJ9xF")
+
+				Expect(err).To(Succeed())
+				Expect(shortURL.LongURL).To(Equal("https://google.es"))
 			})
 		})
 
 		Context("when it retrieves an HTTP request for a short URL with malformed JSON key ", func() {
 			It("returns StatusBadRequest code", func() {
-				request := httptest.NewRequest(gohttp.MethodPost, "/api/link", badjsonURLRequest())
+				response := r.doPOSTRequest("/api/link", badjsonURLRequest())
 
-				handler(recorder, request)
-
-				result := recorder.Result()
-				Expect(result.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
 		})
 
 		Context("when it retrieves an HTTP request for a short URL with malformed long URL", func() {
 			It("returns StatusBadRequest code", func() {
-				request := httptest.NewRequest(gohttp.MethodPost, "/api/link", badURLRequest())
+				response := r.doPOSTRequest("/api/link", badURLRequest())
 
-				handler(recorder, request)
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+			})
+		})
+	})
 
-				result := recorder.Result()
-				Expect(result.StatusCode).To(Equal(gohttp.StatusBadRequest))
+	Context("when the handler is the redirector", func() {
+		Context("when it retrieves an HTTP request for a redirection", func() {
+			Context("and the URL is present in the repository", func() {
+				It("responds with a URL redirect", func() {
+					_ = shortURLRepository.Save(&url.ShortURL{
+						Hash:    "123456",
+						LongURL: "https://google.com",
+					})
+
+					response := r.doGETRequest("/r/123456")
+
+					Expect(response.StatusCode).To(Equal(gohttp.StatusPermanentRedirect))
+				})
+			})
+			Context("but the URL is not present in the repository", func() {
+				It("returns a 404 error", func() {
+					response := r.doGETRequest("/r/123456")
+
+					Expect(response.StatusCode).To(Equal(gohttp.StatusNotFound))
+				})
 			})
 		})
 	})
