@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 	`io`
 	gohttp `net/http`
 	`net/http/httptest`
@@ -10,15 +11,19 @@ import (
 	. `github.com/onsi/gomega`
 
 	`github.com/WebEngineeringGroupI/backend/pkg/application/http`
-	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory`
 )
 
 var _ = Describe("Application / HTTP", func() {
+	var (
+		httpEngine *http.Engine
+	)
+
+	BeforeEach(func(){
+		httpEngine = http.NewEngine("http://example.com", inmemory.NewRepository())
+	})
 	Context("when it retrieves an HTTP request for a short URL", func() {
 		It("returns the short URL", func() {
-			httpEngine := http.NewEngine("http://example.com", inmemory.NewRepository())
 			handler := httpEngine.Shortener()
-
 			request := httptest.NewRequest("POST", "http://example.com/api/link", longURLRequest())
 			recorder := httptest.NewRecorder()
 			handler(recorder, request)
@@ -26,6 +31,29 @@ var _ = Describe("Application / HTTP", func() {
 
 			Expect(result.StatusCode).To(Equal(gohttp.StatusOK))
 			Expect(readAll(result.Body)).To(MatchJSON(longURLResponse()))
+		})
+	})
+	Context("when it retrieves an HTTP request for a short URL with malformed JSON key ", func() {
+		It("returns StatusBadRequest code", func() {
+			handler := httpEngine.Shortener()
+			request := httptest.NewRequest("POST", "http://example.com/api/link", badjsonURLRequest())
+			recorder := httptest.NewRecorder()
+			handler(recorder, request)
+			result := recorder.Result()
+
+			Expect(result.StatusCode).To(Equal(gohttp.StatusBadRequest))
+
+		})
+	})
+	Context("when it retrieves an HTTP request for a short URL with malformed long URL", func() {
+		It("returns StatusBadRequest code", func() {
+			handler := httpEngine.Shortener()
+			request := httptest.NewRequest("POST", "http://example.com/api/link", badURLRequest())
+			recorder := httptest.NewRecorder()
+			handler(recorder, request)
+			result := recorder.Result()
+
+			Expect(result.StatusCode).To(Equal(gohttp.StatusBadRequest))
 		})
 	})
 })
@@ -44,6 +72,22 @@ func longURLResponse() string {
 	"url": "http://example.com/lxqrJ9xF"
 }
 `
+}
+
+func badjsonURLRequest() io.Reader {
+	return strings.NewReader(`
+{
+	"badjson": "https://google.es"
+}
+`)
+}
+
+func badURLRequest() io.Reader {
+	return strings.NewReader(`
+{
+	"url": "ftp://google.es"
+}
+`)
 }
 
 func readAll(reader io.Reader) string {

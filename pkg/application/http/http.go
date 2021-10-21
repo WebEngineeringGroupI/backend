@@ -15,16 +15,18 @@ type Engine struct {
 
 func (e *Engine) Shortener() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+
 		var dataIn shortURLDataIn
 		err := json.NewDecoder(request.Body).Decode(&dataIn)
-		if err != nil {
+		if err != nil || dataIn.Url == "" {
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		shortURL := e.urlShortenerService.HashFromURL(dataIn.Url)
+		fmt.Println(shortURL)
 		if shortURL == nil {
-			writer.WriteHeader(http.StatusInternalServerError)
+			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
