@@ -1,7 +1,7 @@
 package url
 
 import (
-	`errors`
+	"errors"
 )
 
 var (

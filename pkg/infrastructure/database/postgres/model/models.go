@@ -1,7 +1,7 @@
 package model
 
 import (
-	`time`
+	"time"
 )
 
 type Shorturl struct {
@@ -12,8 +12,8 @@ type Shorturl struct {
 }
 
 type Clickdetails struct {
-	Hash		string    	`xorm:"'hash'"`
-	Ip   		string    	`xorm:"'ip'"`
-	CreatedAt time.Time 	`xorm:"created"`
-	UpdatedAt time.Time 	`xorm:"updated"`
+	Hash      string    `xorm:"'hash'"`
+	IP        string    `xorm:"'ip'"`
+	CreatedAt time.Time `xorm:"created"`
+	UpdatedAt time.Time `xorm:"updated"`
 }

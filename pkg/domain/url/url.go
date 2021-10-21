@@ -1,9 +1,9 @@
 package url
 
 import (
-	`crypto/sha1`
-	`encoding/base64`
-	`strings`
+	"crypto/sha1"
+	"encoding/base64"
+	"strings"
 )
 
 type Shortener struct {
@@ -29,7 +29,7 @@ func (s *Shortener) HashFromURL(aLongURL string) *ShortURL {
 		LongURL: aLongURL,
 	}
 
-	s.repository.Save(shortURL)
+	_ = s.repository.Save(shortURL) // FIXME(fede): check this error and test it
 	return shortURL
 }
 

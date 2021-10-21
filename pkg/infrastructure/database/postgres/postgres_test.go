@@ -2,21 +2,23 @@ package postgres_test
 
 import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
-	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
-	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres`
+
 	. "github.com/onsi/ginkgo"
-	. `github.com/onsi/gomega`
+	. "github.com/onsi/gomega"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 )
 
 var _ = Describe("Postgres", func() {
 	var (
-		aShortURL *url.ShortURL
+		aShortURL  *url.ShortURL
 		repository *postgres.DB
 	)
 
 	BeforeEach(func() {
 		aShortURL = &url.ShortURL{
-			Hash: "12345678",
+			Hash:    "12345678",
 			LongURL: "https://google.com",
 		}
 
@@ -56,7 +58,7 @@ var _ = Describe("Postgres", func() {
 
 	Context("when the short URL doesn't exist in the database", func() {
 		It("returns an error saying not found", func() {
-			retrievedShortURL, err := repository.FindByHash("non_exising_hash")
+			retrievedShortURL, err := repository.FindByHash("non_existing_hash")
 
 			Expect(err).To(MatchError(url.ErrShortURLNotFound))
 			Expect(retrievedShortURL).To(BeNil())
@@ -64,9 +66,9 @@ var _ = Describe("Postgres", func() {
 	})
 
 	It("Stores click information and retrieves again", func() {
-		click := &click.ClickDetails {
+		click := &click.Details{
 			Hash: aShortURL.Hash,
-			Ip: "192.168.1.1",
+			IP:   "192.168.1.1",
 		}
 		err := repository.SaveClick(click)
 		Expect(err).To(Succeed())
@@ -78,11 +80,10 @@ var _ = Describe("Postgres", func() {
 
 	Context("when click information doesn't exist in the database", func() {
 		It("doesn't return an error", func() {
-			clicks, err := repository.FindClicksByHash("non_exising_hash")
+			clicks, err := repository.FindClicksByHash("non_existing_hash")
 			Expect(err).To(Succeed())
 			Expect(clicks).To(BeEmpty())
 		})
 	})
 
 })
-

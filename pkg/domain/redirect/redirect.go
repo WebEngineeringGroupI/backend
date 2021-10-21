@@ -1,8 +1,8 @@
 package redirect
 
 import (
-	`errors`
-	`fmt`
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"

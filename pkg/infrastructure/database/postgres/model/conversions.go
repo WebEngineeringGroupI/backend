@@ -2,7 +2,7 @@ package model
 
 import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
-	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 func ShortURLFromDomain(url *url.ShortURL) Shorturl {
@@ -19,16 +19,16 @@ func ShortURLToDomain(shortURL Shorturl) *url.ShortURL {
 	}
 }
 
-func ClickDetailsFromDomain(click *click.ClickDetails) Clickdetails {
+func ClickDetailsFromDomain(click *click.Details) Clickdetails {
 	return Clickdetails{
 		Hash: click.Hash,
-		Ip: click.Ip,
+		IP:   click.IP,
 	}
 }
 
-func ClickDetailsToDomain(clickModel *Clickdetails) *click.ClickDetails {
-	return &click.ClickDetails {
+func ClickDetailsToDomain(clickModel *Clickdetails) *click.Details {
+	return &click.Details{
 		Hash: clickModel.Hash,
-		Ip: clickModel.Ip,
+		IP:   clickModel.IP,
 	}
 }

@@ -1,7 +1,7 @@
 package inmemory
 
 import (
-	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 type Repository struct {

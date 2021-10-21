@@ -4,16 +4,15 @@ type Clicker struct {
 	repository ClickerRepository
 }
 
-type ClickDetails struct {
-	Hash    string
-	Ip string
+type Details struct {
+	Hash string
+	IP   string
 }
 
 func NewClicker(repository ClickerRepository) *Clicker {
 	return &Clicker{repository: repository}
 }
 
-func (l *Clicker) LogClick(click *ClickDetails) {
-	l.repository.SaveClick(click)
+func (l *Clicker) LogClick(clickDetails *Details) {
+	l.repository.SaveClick(clickDetails)
 }
-

@@ -1,15 +1,15 @@
 package http_test
 
 import (
-	`io`
-	gohttp `net/http`
-	`net/http/httptest`
-	`strings`
+	"io"
+	gohttp "net/http"
+	"net/http/httptest"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
-	. `github.com/onsi/gomega`
+	. "github.com/onsi/gomega"
 
-	`github.com/WebEngineeringGroupI/backend/pkg/application/http`
+	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 

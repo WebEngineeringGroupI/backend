@@ -1,16 +1,15 @@
 package postgres
 
 import (
-	`errors`
-	`fmt`
+	"errors"
+	"fmt"
 
-	`github.com/lib/pq`
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"xorm.io/xorm"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
-	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
-	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/model`
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/model"
 )
 
 type ConnectionDetails struct {
@@ -45,8 +44,8 @@ func (d *DB) Save(url *url.ShortURL) error {
 }
 
 func (d *DB) FindByHash(hash string) (*url.ShortURL, error) {
-	shortUrl := model.Shorturl{Hash: hash}
-	exists, err := d.engine.Get(&shortUrl)
+	shortURL := model.Shorturl{Hash: hash}
+	exists, err := d.engine.Get(&shortURL)
 	if !exists {
 		return nil, url.ErrShortURLNotFound
 	}
@@ -54,10 +53,10 @@ func (d *DB) FindByHash(hash string) (*url.ShortURL, error) {
 		return nil, fmt.Errorf("unknown error retrieving short url: %w", err)
 	}
 
-	return model.ShortURLToDomain(shortUrl), nil
+	return model.ShortURLToDomain(shortURL), nil
 }
 
-func (d *DB) SaveClick(click *click.ClickDetails) error {
+func (d *DB) SaveClick(click *click.Details) error {
 	clickModel := model.ClickDetailsFromDomain(click)
 	_, err := d.engine.Insert(&clickModel)
 	if err != nil {
@@ -66,13 +65,13 @@ func (d *DB) SaveClick(click *click.ClickDetails) error {
 	return nil
 }
 
-func (d *DB) FindClicksByHash(hash string) ([]*click.ClickDetails, error) {
+func (d *DB) FindClicksByHash(hash string) ([]*click.Details, error) {
 	var clicksModel []*model.Clickdetails
 	err := d.engine.Find(&clicksModel, model.Clickdetails{Hash: hash})
 	if err != nil {
 		return nil, fmt.Errorf("unknow error finding clicks by hash: %w", err)
 	}
-	var clicks []*click.ClickDetails
+	var clicks []*click.Details
 	for _, clickModel := range clicksModel {
 		clicks = append(clicks, model.ClickDetailsToDomain(clickModel))
 	}
@@ -96,5 +95,4 @@ func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
 	return &DB{
 		engine: engine,
 	}, nil
-
 }

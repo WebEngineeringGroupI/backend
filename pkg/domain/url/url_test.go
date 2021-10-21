@@ -2,10 +2,10 @@ package url_test
 
 import (
 	. "github.com/onsi/ginkgo"
-	. `github.com/onsi/gomega`
+	. "github.com/onsi/gomega"
 
-	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
-	`github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory`
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
 var _ = Describe("URL shortener", func() {

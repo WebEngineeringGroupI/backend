@@ -1,11 +1,11 @@
 package http
 
 import (
-	`encoding/json`
-	`fmt`
-	`net/http`
+	"encoding/json"
+	"fmt"
+	"net/http"
 
-	`github.com/WebEngineeringGroupI/backend/pkg/domain/url`
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 type Engine struct {
@@ -15,15 +15,14 @@ type Engine struct {
 
 func (e *Engine) Shortener() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-
 		var dataIn shortURLDataIn
 		err := json.NewDecoder(request.Body).Decode(&dataIn)
-		if err != nil || dataIn.Url == "" {
+		if err != nil || dataIn.URL == "" {
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		shortURL := e.urlShortenerService.HashFromURL(dataIn.Url)
+		shortURL := e.urlShortenerService.HashFromURL(dataIn.URL)
 		fmt.Println(shortURL)
 		if shortURL == nil {
 			writer.WriteHeader(http.StatusBadRequest)
@@ -31,7 +30,7 @@ func (e *Engine) Shortener() http.HandlerFunc {
 		}
 
 		dataOut := shortURLDataOut{
-			Url: fmt.Sprintf("%s/%s", e.httpDomain, shortURL.Hash),
+			URL: fmt.Sprintf("%s/%s", e.httpDomain, shortURL.Hash),
 		}
 		err = json.NewEncoder(writer).Encode(&dataOut)
 		if err != nil {
@@ -40,7 +39,6 @@ func (e *Engine) Shortener() http.HandlerFunc {
 		}
 
 		writer.WriteHeader(http.StatusOK)
-		return
 	}
 }
 

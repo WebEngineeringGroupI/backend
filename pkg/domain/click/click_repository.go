@@ -1,6 +1,6 @@
 package click
 
 type ClickerRepository interface {
-	FindClicksByHash(hash string) []*ClickDetails
-	SaveClick(click *ClickDetails)
+	FindClicksByHash(hash string) []*Details
+	SaveClick(click *Details)
 }

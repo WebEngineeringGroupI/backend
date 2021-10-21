@@ -16,7 +16,7 @@ var _ = Describe("Click logger", func() {
 	)
 
 	BeforeEach(func() {
-		repository = &FakeClickerRepository{clicks: map[string][]*click.ClickDetails{}}
+		repository = &FakeClickerRepository{clicks: map[string][]*click.Details{}}
 		clicker = click.NewClicker(repository)
 		aShortURL = &url.ShortURL{Hash: "12345678", LongURL: "https://google.com"}
 	})
@@ -24,9 +24,9 @@ var _ = Describe("Click logger", func() {
 	Context("when providing click details", func() {
 		It("logs click details in a repository", func() {
 
-			click := &click.ClickDetails{
+			click := &click.Details{
 				Hash: aShortURL.Hash,
-				Ip:   "192.168.1.1",
+				IP:   "192.168.1.1",
 			}
 
 			clicker.LogClick(click)
@@ -38,14 +38,14 @@ var _ = Describe("Click logger", func() {
 })
 
 type FakeClickerRepository struct {
-	clicks map[string][]*click.ClickDetails
+	clicks map[string][]*click.Details
 }
 
-func (f *FakeClickerRepository) SaveClick(click *click.ClickDetails) {
+func (f *FakeClickerRepository) SaveClick(click *click.Details) {
 	f.clicks[click.Hash] = append(f.clicks[click.Hash], click)
 }
 
-func (f *FakeClickerRepository) FindClicksByHash(hash string) []*click.ClickDetails {
+func (f *FakeClickerRepository) FindClicksByHash(hash string) []*click.Details {
 	clicks, ok := f.clicks[hash]
 	if !ok {
 		return nil
