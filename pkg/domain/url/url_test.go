@@ -22,41 +22,47 @@ var _ = Describe("URL shortener", func() {
 	Context("when providing a long URL", func() {
 		It("generates a hash", func() {
 			aLongURL := "https://google.com"
-			shortURL := shortener.HashFromURL(aLongURL)
+			shortURL, err := shortener.HashFromURL(aLongURL)
 
+			Expect(err).To(Succeed())
 			Expect(shortURL.Hash).To(HaveLen(8))
 		})
 
 		It("contains the real value from the original URL", func() {
 			aLongURL := "https://google.com"
-			shortURL := shortener.HashFromURL(aLongURL)
+			shortURL, err := shortener.HashFromURL(aLongURL)
 
+			Expect(err).To(Succeed())
 			Expect(shortURL.LongURL).To(Equal(aLongURL))
 		})
 
 		Context("and the provided URL is not HTTP", func() {
 			It("validates that the provided URL is not valid", func() {
 				aLongURL := "ftp://google.com"
-				shortURL := shortener.HashFromURL(aLongURL)
+				shortURL, err := shortener.HashFromURL(aLongURL)
 
+				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
 				Expect(shortURL).To(BeNil())
 			})
 		})
 
 		Context("when providing different long URLs", func() {
 			It("generates different short URL hashes", func() {
-				shortGoogleURL := shortener.HashFromURL("https://google.com")
-				shortFacebookURL := shortener.HashFromURL("https://facebook.com")
+				shortGoogleURL, err := shortener.HashFromURL("https://google.com")
+				Expect(err).To(Succeed())
+
+				shortFacebookURL, err := shortener.HashFromURL("https://facebook.com")
+				Expect(err).To(Succeed())
 
 				Expect(shortGoogleURL.Hash).ToNot(Equal(shortFacebookURL.Hash))
 			})
 		})
 
 		It("stores the short URL in a repository", func() {
-			shortURL := shortener.HashFromURL("https://unizar.es")
+			shortURL, err := shortener.HashFromURL("https://unizar.es")
+			Expect(err).To(Succeed())
 
 			expectedURLInRepo, err := repository.FindByHash(shortURL.Hash)
-
 			Expect(err).To(Succeed())
 			Expect(expectedURLInRepo.Hash).To(Equal(shortURL.Hash))
 		})
