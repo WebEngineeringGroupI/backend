@@ -26,18 +26,20 @@ type DB struct {
 }
 
 var (
-	errDuplicateConstraintViolation = "23505"
+	errDuplicateConstraintViolation pq.ErrorCode = "23505"
 )
 
 func (d *DB) Save(url *url.ShortURL) error {
 	shortURL := model.ShortURLFromDomain(url)
 	_, err := d.engine.Insert(&shortURL)
 
-	var pqError pq.Error
-	if errors.Is(err, &pqError) {
-		if pqError.Code == pq.ErrorCode(errDuplicateConstraintViolation) {
+	var pqError *pq.Error
+	if errors.As(err, &pqError) {
+		if pqError.Code == errDuplicateConstraintViolation {
 			return nil
 		}
+	}
+	if err != nil {
 		return fmt.Errorf("unable to save short URL: %w", err)
 	}
 	return nil

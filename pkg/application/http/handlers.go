@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -26,14 +27,23 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.Ha
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn
 		err := json.NewDecoder(request.Body).Decode(&dataIn)
-		if err != nil || dataIn.URL == "" {
-			writer.WriteHeader(http.StatusBadRequest)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if dataIn.URL == "" {
+			http.Error(writer, "empty URL requested", http.StatusBadRequest)
 			return
 		}
 
-		shortURL := urlShortener.HashFromURL(dataIn.URL)
-		if shortURL == nil {
-			writer.WriteHeader(http.StatusBadRequest)
+		shortURL, err := urlShortener.HashFromURL(dataIn.URL)
+		if errors.Is(err, url.ErrInvalidLongURLSpecified) {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(writer, "internal server error", http.StatusInternalServerError)
+			log.Printf("error retrieving hash from long URL: %s", err)
 			return
 		}
 
@@ -43,6 +53,7 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.Ha
 		err = json.NewEncoder(writer).Encode(&dataOut)
 		if err != nil {
 			writer.WriteHeader(http.StatusInternalServerError)
+			log.Printf("error marshaling the response: %s", err)
 			return
 		}
 	}
