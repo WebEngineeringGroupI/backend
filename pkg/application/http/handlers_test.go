@@ -66,6 +66,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doGETRequest("/r/123456")
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusPermanentRedirect))
+				Expect(response.Header.Get("Location")).To(Equal("https://google.com"))
 			})
 		})
 		Context("but the URL is not present in the repository", func() {
@@ -93,7 +94,7 @@ func longURLRequest() io.Reader {
 
 func longURLResponse() string {
 	return `{
-	"url": "http://example.com/lxqrJ9xF"
+	"url": "http://example.com/r/lxqrJ9xF"
 }`
 }
 

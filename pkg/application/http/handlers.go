@@ -38,15 +38,13 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.Ha
 		}
 
 		dataOut := shortURLDataOut{
-			URL: fmt.Sprintf("%s/%s", e.baseDomain, shortURL.Hash),
+			URL: fmt.Sprintf("%s/r/%s", e.baseDomain, shortURL.Hash),
 		}
 		err = json.NewEncoder(writer).Encode(&dataOut)
 		if err != nil {
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		writer.WriteHeader(http.StatusOK)
 	}
 }
 
