@@ -11,7 +11,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
-type Engine struct {
+type HandlerRepository struct {
 	baseDomain        string
 	variableExtractor VariableExtractor
 }
@@ -20,7 +20,7 @@ type VariableExtractor interface {
 	Extract(request *http.Request, key string) string
 }
 
-func (e *Engine) shortener(repository url.ShortURLRepository) http.HandlerFunc {
+func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.HandlerFunc {
 	urlShortener := url.NewShortener(repository)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -50,7 +50,7 @@ func (e *Engine) shortener(repository url.ShortURLRepository) http.HandlerFunc {
 	}
 }
 
-func (e *Engine) redirector(repository url.ShortURLRepository) http.HandlerFunc {
+func (e *HandlerRepository) redirector(repository url.ShortURLRepository) http.HandlerFunc {
 	redirector := redirect.NewRedirector(repository)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -70,14 +70,14 @@ func (e *Engine) redirector(repository url.ShortURLRepository) http.HandlerFunc 
 	}
 }
 
-func (e *Engine) notFound() http.HandlerFunc {
+func (e *HandlerRepository) notFound() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		http.NotFound(writer, request)
 	}
 }
 
-func NewHandlerRepository(baseDomain string, variableExtractor VariableExtractor) *Engine {
-	return &Engine{
+func NewHandlerRepository(baseDomain string, variableExtractor VariableExtractor) *HandlerRepository {
+	return &HandlerRepository{
 		baseDomain:        strings.TrimSuffix(baseDomain, "/"),
 		variableExtractor: variableExtractor,
 	}
