@@ -21,8 +21,8 @@ type VariableExtractor interface {
 	Extract(request *http.Request, key string) string
 }
 
-func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.HandlerFunc {
-	urlShortener := url.NewShortener(repository, url.NewHTTPValidator())
+func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
+	urlShortener := url.NewShortener(repository, validator)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn
@@ -59,8 +59,8 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.Ha
 	}
 }
 
-func (e *HandlerRepository) redirector(repository url.ShortURLRepository) http.HandlerFunc {
-	redirector := redirect.NewRedirector(repository)
+func (e *HandlerRepository) redirector(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
+	redirector := redirect.NewRedirector(repository, validator)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		shortURLHash := e.variableExtractor.Extract(request, "hash")

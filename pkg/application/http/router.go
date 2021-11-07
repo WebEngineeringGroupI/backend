@@ -12,6 +12,7 @@ import (
 type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
+	URLValidator       url.Validator
 }
 
 func NewRouter(config Config) http.Handler {
@@ -36,8 +37,8 @@ func httprouterVariableExtractor() variableExtractorFunc {
 func registerPaths(router *httprouter.Router, config Config) {
 	h := NewHandlerRepository(config.BaseDomain, httprouterVariableExtractor())
 
-	router.Handler(http.MethodPost, "/api/link", h.shortener(config.ShortURLRepository))
-	router.Handler(http.MethodGet, "/r/:hash", h.redirector(config.ShortURLRepository))
+	router.Handler(http.MethodPost, "/api/link", h.shortener(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodGet, "/r/:hash", h.redirector(config.ShortURLRepository, config.URLValidator))
 
 	router.NotFound = h.notFound()
 }

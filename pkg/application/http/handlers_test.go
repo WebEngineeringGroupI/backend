@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"errors"
 	"io"
 	gohttp "net/http"
 	"strings"
@@ -17,12 +18,16 @@ var _ = Describe("Application / HTTP", func() {
 	var (
 		r                  *testingRouter
 		shortURLRepository url.ShortURLRepository
+		validator          *FakeURLValidator
 	)
 	BeforeEach(func() {
 		shortURLRepository = inmemory.NewRepository()
+		validator = &FakeURLValidator{returnValidURL: true}
+
 		r = newTestingRouter(http.Config{
 			BaseDomain:         "http://example.com",
 			ShortURLRepository: shortURLRepository,
+			URLValidator:       validator,
 		})
 	})
 
@@ -46,11 +51,20 @@ var _ = Describe("Application / HTTP", func() {
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
 		})
-		Context("but the long URL is malformed and not supported", func() {
+		Context("but the long URL is invalid", func() {
 			It("returns StatusBadRequest code", func() {
+				validator.shouldReturnValidURL(false)
 				response := r.doPOSTRequest("/api/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+			})
+		})
+		Context("but the validator is unable to validate the URL", func() {
+			It("returns InternalServerError", func() {
+				validator.shouldReturnError(errors.New("error validating the URL"))
+				response := r.doPOSTRequest("/api/link", badURLRequestWithFTP())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusInternalServerError))
 			})
 		})
 	})
@@ -117,4 +131,21 @@ func readAll(reader io.Reader) string {
 
 	ExpectWithOffset(1, err).To(Succeed())
 	return string(bytes)
+}
+
+type FakeURLValidator struct {
+	returnValidURL bool
+	returnError    error
+}
+
+func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
+	f.returnValidURL = validURL
+}
+
+func (f *FakeURLValidator) shouldReturnError(err error) {
+	f.returnError = err
+}
+
+func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
+	return f.returnValidURL, f.returnError
 }
