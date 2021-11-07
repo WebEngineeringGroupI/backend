@@ -12,6 +12,7 @@ kill-db:
 
 fmt:
 	find -iname '*.go' | xargs -L1 gofmt -s -w
+	go mod tidy
 
 lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
