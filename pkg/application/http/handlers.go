@@ -22,7 +22,7 @@ type VariableExtractor interface {
 }
 
 func (e *HandlerRepository) shortener(repository url.ShortURLRepository) http.HandlerFunc {
-	urlShortener := url.NewShortener(repository)
+	urlShortener := url.NewShortener(repository, url.NewHTTPValidator())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn

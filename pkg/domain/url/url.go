@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 )
 
 type Shortener struct {
 	repository ShortURLRepository
+	validator  Validator
 }
 
 type ShortURL struct {
@@ -23,7 +23,11 @@ var (
 
 // FIXME(fede): Rename to something like ShortURLFromLong
 func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
-	if !strings.HasPrefix(aLongURL, "http://") && !strings.HasPrefix(aLongURL, "https://") {
+	isValidURL, err := s.validator.ValidateURL(aLongURL)
+	if err != nil {
+		return nil, err
+	}
+	if !isValidURL {
 		return nil, ErrInvalidLongURLSpecified
 	}
 
@@ -35,7 +39,7 @@ func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		LongURL: aLongURL,
 	}
 
-	err := s.repository.Save(shortURL) // FIXME(fede): test this error
+	err = s.repository.Save(shortURL) // FIXME(fede): test this error
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
@@ -43,8 +47,9 @@ func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 	return shortURL, nil
 }
 
-func NewShortener(repository ShortURLRepository) *Shortener {
+func NewShortener(repository ShortURLRepository, validator Validator) *Shortener {
 	return &Shortener{
 		repository: repository,
+		validator:  validator,
 	}
 }
