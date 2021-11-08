@@ -5,11 +5,15 @@ import (
 	gohttp "net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/reachable"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/safebrowsing"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/schema"
 )
 
 type factory struct {
@@ -68,11 +72,13 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 }
 
 func (f *factory) urlValidator() url.Validator {
-	validator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
+	schemaValidator := schema.NewValidator("http", "https")
+	reachableValidator := reachable.NewValidator(gohttp.DefaultClient, 2*time.Second)
+	safeBrowsingValidator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
 	if err != nil {
 		log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
 	}
-	return validator
+	return pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 }
 
 func newFactory() *factory {

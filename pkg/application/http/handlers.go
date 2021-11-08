@@ -41,6 +41,12 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 
 		shortURL, err := urlShortener.HashFromURL(dataIn.URL)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) {
+			log.Print(err.Error())
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, url.ErrUnableToValidateURLs) {
+			log.Print(err.Error())
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}

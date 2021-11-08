@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-var ErrUnableToValidateURLs = errors.New("unable to validate multiple URLs")
+var ErrUnableToValidateURLs = errors.New("unable to validate URLs")
 
 type Validator interface {
 	ValidateURLs(url []string) (bool, error)
