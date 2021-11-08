@@ -1,6 +1,8 @@
 package url_test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -12,11 +14,13 @@ var _ = Describe("URL shortener", func() {
 	var (
 		shortener  *url.Shortener
 		repository url.ShortURLRepository
+		validator  *FakeURLValidator
 	)
 
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
-		shortener = url.NewShortener(repository)
+		validator = &FakeURLValidator{returnValidURL: true}
+		shortener = url.NewShortener(repository, validator)
 	})
 
 	Context("when providing a long URL", func() {
@@ -39,9 +43,21 @@ var _ = Describe("URL shortener", func() {
 		Context("and the provided URL is not HTTP", func() {
 			It("validates that the provided URL is not valid", func() {
 				aLongURL := "ftp://google.com"
+				validator.shouldReturnValidURL(false)
 				shortURL, err := shortener.HashFromURL(aLongURL)
 
 				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
+				Expect(shortURL).To(BeNil())
+			})
+		})
+
+		Context("but the validator returns an error", func() {
+			It("returns the error since it's unable to validate the URL", func() {
+				aLongURL := "an-url"
+				validator.shouldReturnError(errors.New("unknown error"))
+				shortURL, err := shortener.HashFromURL(aLongURL)
+
+				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURL).To(BeNil())
 			})
 		})
@@ -71,3 +87,20 @@ var _ = Describe("URL shortener", func() {
 		// TODO(german): What's the meaning of Safe and Sponsor in the original urlshortener implementation
 	})
 })
+
+type FakeURLValidator struct {
+	returnValidURL bool
+	returnError    error
+}
+
+func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
+	f.returnValidURL = validURL
+}
+
+func (f *FakeURLValidator) shouldReturnError(err error) {
+	f.returnError = err
+}
+
+func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
+	return f.returnValidURL, f.returnError
+}

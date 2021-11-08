@@ -9,6 +9,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/safebrowsing"
 )
 
 type factory struct{}
@@ -21,6 +22,7 @@ func (f *factory) httpConfig() http.Config {
 	return http.Config{
 		BaseDomain:         f.baseDomain(),
 		ShortURLRepository: f.shortURLRepository(),
+		URLValidator:       f.urlValidator(),
 	}
 }
 
@@ -62,6 +64,14 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 		log.Fatalf("mandatory %s env var is not set", variable)
 	}
 	return value
+}
+
+func (f *factory) urlValidator() url.Validator {
+	validator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
+	if err != nil {
+		log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
+	}
+	return validator
 }
 
 func newFactory() *factory {
