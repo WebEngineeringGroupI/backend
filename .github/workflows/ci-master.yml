@@ -1,7 +1,7 @@
 name: Pull Request
 
 on:
-  pull_request:
+  push:
     branches:
       - master
 
@@ -31,14 +31,3 @@ jobs:
 
       - name: Build
         run: make build
-
-      - name: Lint
-        run: make lint
-
-      - name: Test Unit
-        run: make test-unit
-
-      - name: Test Integration
-        run: make test-integration
-        env:
-          SAFE_BROWSING_API_KEY: ${{ secrets.SAFE_BROWSING_API_KEY }}
