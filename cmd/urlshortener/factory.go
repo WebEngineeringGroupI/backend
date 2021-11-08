@@ -5,15 +5,18 @@ import (
 	gohttp "net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/safebrowsing"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/reachable"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/safebrowsing"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/schema"
 )
 
 type factory struct {
-	safeBrowsingValidatorInstance *safebrowsing.Validator
 }
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
@@ -22,10 +25,9 @@ func (f *factory) NewHTTPRouter() gohttp.Handler {
 
 func (f *factory) httpConfig() http.Config {
 	return http.Config{
-		BaseDomain:           f.baseDomain(),
-		ShortURLRepository:   f.shortURLRepository(),
-		URLValidator:         f.urlValidator(),
-		MultipleURLValidator: f.multipleURLValidator(),
+		BaseDomain:         f.baseDomain(),
+		ShortURLRepository: f.shortURLRepository(),
+		URLValidator:       f.urlValidator(),
 	}
 }
 
@@ -70,22 +72,13 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 }
 
 func (f *factory) urlValidator() url.Validator {
-	return f.newSafeBrowsingValidatorInstance()
-}
-
-func (f *factory) multipleURLValidator() url.MultipleValidator {
-	return f.newSafeBrowsingValidatorInstance()
-}
-
-func (f *factory) newSafeBrowsingValidatorInstance() *safebrowsing.Validator {
-	if f.safeBrowsingValidatorInstance != nil {
-		validator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
-		if err != nil {
-			log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
-		}
-		f.safeBrowsingValidatorInstance = validator
+	schemaValidator := schema.NewValidator("http", "https")
+	reachableValidator := reachable.NewValidator(gohttp.DefaultClient, 2*time.Second)
+	safeBrowsingValidator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
+	if err != nil {
+		log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
 	}
-	return f.safeBrowsingValidatorInstance
+	return pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 }
 
 func newFactory() *factory {

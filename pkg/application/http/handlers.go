@@ -41,6 +41,12 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 
 		shortURL, err := urlShortener.HashFromURL(dataIn.URL)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) {
+			log.Print(err.Error())
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, url.ErrUnableToValidateURLs) {
+			log.Print(err.Error())
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -88,7 +94,7 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 	}
 }
 
-func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.MultipleValidator) http.HandlerFunc {
+func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
 	csvShortener := url.NewFileURLShortener(repository, validator, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {

@@ -123,6 +123,6 @@ func (f *FakeURLValidator) shouldReturnError(err error) {
 	f.returnError = err
 }
 
-func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
+func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
 	return f.returnValidURL, f.returnError
 }

@@ -13,7 +13,7 @@ type Formatter interface {
 
 type FileURLShortener struct {
 	repository ShortURLRepository
-	validator  MultipleValidator
+	validator  Validator
 	formatter  Formatter
 }
 
@@ -51,7 +51,7 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 	return shortURLs, nil
 }
 
-func NewFileURLShortener(repository ShortURLRepository, validator MultipleValidator, formatter Formatter) *FileURLShortener {
+func NewFileURLShortener(repository ShortURLRepository, validator Validator, formatter Formatter) *FileURLShortener {
 	return &FileURLShortener{
 		repository: repository,
 		validator:  validator,

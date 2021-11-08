@@ -26,10 +26,9 @@ var _ = Describe("Application / HTTP", func() {
 		validator = &FakeURLValidator{returnValidURL: true}
 
 		r = newTestingRouter(http.Config{
-			BaseDomain:           "http://example.com",
-			ShortURLRepository:   shortURLRepository,
-			URLValidator:         validator,
-			MultipleURLValidator: validator,
+			BaseDomain:         "http://example.com",
+			ShortURLRepository: shortURLRepository,
+			URLValidator:       validator,
 		})
 	})
 
