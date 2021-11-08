@@ -7,3 +7,5 @@ type shortURLDataIn struct {
 type shortURLDataOut struct {
 	URL string `json:"url"`
 }
+
+type csvDataOut [][]string

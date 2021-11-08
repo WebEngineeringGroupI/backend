@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-type Shortener struct {
+type SingleURLShortener struct {
 	repository ShortURLRepository
 	validator  Validator
 }
@@ -22,7 +22,7 @@ var (
 )
 
 // FIXME(fede): Rename to something like ShortURLFromLong
-func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
+func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 	isValidURL, err := s.validator.ValidateURL(aLongURL)
 	if err != nil {
 		return nil, err
@@ -31,11 +31,8 @@ func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		return nil, ErrInvalidLongURLSpecified
 	}
 
-	bytes := sha1.Sum([]byte(aLongURL))
-	sum := base64.StdEncoding.EncodeToString(bytes[:])
-
 	shortURL := &ShortURL{
-		Hash:    sum[0:8],
+		Hash:    hashFromURL(aLongURL),
 		LongURL: aLongURL,
 	}
 
@@ -47,8 +44,15 @@ func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 	return shortURL, nil
 }
 
-func NewShortener(repository ShortURLRepository, validator Validator) *Shortener {
-	return &Shortener{
+func hashFromURL(aLongURL string) string {
+	bytes := sha1.Sum([]byte(aLongURL))
+	sum := base64.StdEncoding.EncodeToString(bytes[:])
+	hash := sum[0:8]
+	return hash
+}
+
+func NewSingleURLShortener(repository ShortURLRepository, validator Validator) *SingleURLShortener {
+	return &SingleURLShortener{
 		repository: repository,
 		validator:  validator,
 	}
