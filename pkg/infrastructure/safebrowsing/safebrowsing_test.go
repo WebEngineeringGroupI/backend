@@ -36,4 +36,22 @@ var _ = Describe("SafeBrowsing Validator", func() {
 			Expect(isSafe).To(BeFalse())
 		})
 	})
+
+	Context("when checking if multiple safe websites are valid", func() {
+		It("returns that the URLs are valid", func() {
+			isSafe, err := validator.ValidateURLs([]string{"google.com", "youtube.com"})
+
+			Expect(err).To(Succeed())
+			Expect(isSafe).To(BeTrue())
+		})
+	})
+
+	Context("when checking if multiple urls are safe, but one of them is invalid", func() {
+		It("returns that the URLs are not valid", func() {
+			isSafe, err := validator.ValidateURLs([]string{"google.com", "wp.readhere.in"})
+
+			Expect(err).To(Succeed())
+			Expect(isSafe).To(BeFalse())
+		})
+	})
 })

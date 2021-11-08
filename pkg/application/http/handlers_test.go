@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	gohttp "net/http"
@@ -25,15 +26,16 @@ var _ = Describe("Application / HTTP", func() {
 		validator = &FakeURLValidator{returnValidURL: true}
 
 		r = newTestingRouter(http.Config{
-			BaseDomain:         "http://example.com",
-			ShortURLRepository: shortURLRepository,
-			URLValidator:       validator,
+			BaseDomain:           "http://example.com",
+			ShortURLRepository:   shortURLRepository,
+			URLValidator:         validator,
+			MultipleURLValidator: validator,
 		})
 	})
 
 	Context("when it retrieves an HTTP request for a short URL", func() {
 		It("returns the short URL", func() {
-			response := r.doPOSTRequest("/api/link", longURLRequest())
+			response := r.doPOSTRequest("/api/v1/link", longURLRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
 			Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
@@ -46,7 +48,7 @@ var _ = Describe("Application / HTTP", func() {
 
 		Context("but the JSON is malformed", func() {
 			It("returns StatusBadRequest code", func() {
-				response := r.doPOSTRequest("/api/link", badURLRequestWithMalformedJSON())
+				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithMalformedJSON())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
@@ -54,7 +56,7 @@ var _ = Describe("Application / HTTP", func() {
 		Context("but the long URL is invalid", func() {
 			It("returns StatusBadRequest code", func() {
 				validator.shouldReturnValidURL(false)
-				response := r.doPOSTRequest("/api/link", badURLRequestWithFTP())
+				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
@@ -62,7 +64,7 @@ var _ = Describe("Application / HTTP", func() {
 		Context("but the validator is unable to validate the URL", func() {
 			It("returns InternalServerError", func() {
 				validator.shouldReturnError(errors.New("error validating the URL"))
-				response := r.doPOSTRequest("/api/link", badURLRequestWithFTP())
+				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusInternalServerError))
 			})
@@ -91,6 +93,43 @@ var _ = Describe("Application / HTTP", func() {
 			})
 		})
 	})
+
+	Context("when it retrieves an HTTP request to shorten a CSV file", func() {
+		It("returns a CSV with the URLs shortened", func() {
+			response := r.doPOSTRequest("/csv", csvFileRequest())
+
+			Expect(response.StatusCode).To(Equal(gohttp.StatusCreated))
+			Expect(response.Header.Get("Content-type")).To(Equal("text/csv"))
+			Expect(response.Header.Get("Location")).To(Equal("google.com"))
+			Expect(readAll(response.Body)).To(Equal(csvFileResponse()))
+
+			firstURL, err := shortURLRepository.FindByHash("uuqVS5Vz")
+			Expect(err).To(Succeed())
+			secondURL, err := shortURLRepository.FindByHash("1+IiyNe6")
+			Expect(err).To(Succeed())
+
+			Expect(firstURL.LongURL).To(Equal("google.com"))
+			Expect(secondURL.LongURL).To(Equal("youtube.com"))
+		})
+
+		Context("but the CSV is empty", func() {
+			It("returns a bad request code", func() {
+				response := r.doPOSTRequest("/csv", bytes.NewReader([]byte("")))
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+			})
+		})
+
+		Context("but a long URL is invalid", func() {
+			It("returns StatusBadRequest code", func() {
+				validator.shouldReturnValidURL(false)
+				response := r.doPOSTRequest("/csv", csvFileRequest())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+			})
+		})
+	})
+
 	Context("when it retrieves an HTTP request to an unknown endpoint", func() {
 		It("returns an 404 error", func() {
 			response := r.doGETRequest("/unknown/endpoint")
@@ -99,6 +138,17 @@ var _ = Describe("Application / HTTP", func() {
 		})
 	})
 })
+
+func csvFileRequest() io.Reader {
+	return bytes.NewReader([]byte(`google.com
+youtube.com`))
+}
+
+func csvFileResponse() string {
+	return `google.com,http://example.com/r/uuqVS5Vz,
+youtube.com,http://example.com/r/1+IiyNe6,
+`
+}
 
 func longURLRequest() io.Reader {
 	return strings.NewReader(`{
@@ -147,5 +197,9 @@ func (f *FakeURLValidator) shouldReturnError(err error) {
 }
 
 func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
+	return f.returnValidURL, f.returnError
+}
+
+func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
 	return f.returnValidURL, f.returnError
 }

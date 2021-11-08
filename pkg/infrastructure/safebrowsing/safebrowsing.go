@@ -13,7 +13,11 @@ type Validator struct {
 }
 
 func (s *Validator) ValidateURL(aLongURL string) (bool, error) {
-	threats, err := s.safebrowser.LookupURLs([]string{aLongURL})
+	return s.ValidateURLs([]string{aLongURL})
+}
+
+func (s *Validator) ValidateURLs(urls []string) (bool, error) {
+	threats, err := s.safebrowser.LookupURLs(urls)
 	if err != nil {
 		return false, fmt.Errorf("%w: %s", url.ErrUnableToValidateURL, err)
 	}

@@ -10,9 +10,9 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
-var _ = Describe("URL shortener", func() {
+var _ = Describe("Single URL shortener", func() {
 	var (
-		shortener  *url.Shortener
+		shortener  *url.SingleURLShortener
 		repository url.ShortURLRepository
 		validator  *FakeURLValidator
 	)
@@ -20,7 +20,7 @@ var _ = Describe("URL shortener", func() {
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
 		validator = &FakeURLValidator{returnValidURL: true}
-		shortener = url.NewShortener(repository, validator)
+		shortener = url.NewSingleURLShortener(repository, validator)
 	})
 
 	Context("when providing a long URL", func() {
@@ -40,7 +40,7 @@ var _ = Describe("URL shortener", func() {
 			Expect(shortURL.LongURL).To(Equal(aLongURL))
 		})
 
-		Context("and the provided URL is not HTTP", func() {
+		Context("and the provided URL is not valid", func() {
 			It("validates that the provided URL is not valid", func() {
 				aLongURL := "ftp://google.com"
 				validator.shouldReturnValidURL(false)
@@ -102,5 +102,9 @@ func (f *FakeURLValidator) shouldReturnError(err error) {
 }
 
 func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
+	return f.returnValidURL, f.returnError
+}
+
+func (f *FakeURLValidator) ValidateURLs(url []string) (bool, error) {
 	return f.returnValidURL, f.returnError
 }
