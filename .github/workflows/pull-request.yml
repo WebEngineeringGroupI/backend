@@ -41,4 +41,4 @@ jobs:
       - name: Test Integration
         run: make test-integration
         env:
-          SAFE_BROWSING_API_KEY: ${{ secret.SAFE_BROWSING_API_KEY }}
+          SAFE_BROWSING_API_KEY: ${{ secrets.SAFE_BROWSING_API_KEY }}
