@@ -20,16 +20,7 @@ var _ = Describe("CSV Formatter", func() {
 		longURLs, err := csvFormatter.FormatDataToURLs([]byte("\"https://google.com\"\n\"https://unizar.es\""))
 
 		Expect(err).To(Succeed())
-		Expect(longURLs).To(ConsistOf("https://google.com", "https://unizar.es"))
-	})
-
-	Context("when the CSV file contains multiple repeated URLs", func() {
-		It("deduplicates all of the entries", func() {
-			longURLs, err := csvFormatter.FormatDataToURLs([]byte("\"https://google.com\"\n\"https://google.com\""))
-
-			Expect(err).To(Succeed())
-			Expect(longURLs).To(ConsistOf("https://google.com"))
-		})
+		Expect(longURLs).To(Equal([]string{"https://google.com", "https://unizar.es"}))
 	})
 
 	Context("when the CSV is empty", func() {

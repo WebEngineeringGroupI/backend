@@ -10,10 +10,9 @@ import (
 )
 
 type Config struct {
-	BaseDomain           string
-	ShortURLRepository   url.ShortURLRepository
-	URLValidator         url.Validator
-	MultipleURLValidator url.MultipleValidator
+	BaseDomain         string
+	ShortURLRepository url.ShortURLRepository
+	URLValidator       url.Validator
 }
 
 func NewRouter(config Config) http.Handler {
@@ -39,7 +38,7 @@ func registerPaths(router *httprouter.Router, config Config) {
 	h := NewHandlerRepository(config.BaseDomain, httprouterVariableExtractor())
 
 	router.Handler(http.MethodPost, "/api/v1/link", h.shortener(config.ShortURLRepository, config.URLValidator))
-	router.Handler(http.MethodPost, "/csv", h.csvShortener(config.ShortURLRepository, config.MultipleURLValidator))
+	router.Handler(http.MethodPost, "/csv", h.csvShortener(config.ShortURLRepository, config.URLValidator))
 	router.Handler(http.MethodGet, "/r/:hash", h.redirector(config.ShortURLRepository, config.URLValidator))
 
 	router.NotFound = h.notFound()

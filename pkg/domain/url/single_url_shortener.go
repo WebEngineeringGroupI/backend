@@ -23,7 +23,7 @@ var (
 
 // FIXME(fede): Rename to something like ShortURLFromLong
 func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
-	isValidURL, err := s.validator.ValidateURL(aLongURL)
+	isValidURL, err := s.validator.ValidateURLs([]string{aLongURL})
 	if err != nil {
 		return nil, err
 	}

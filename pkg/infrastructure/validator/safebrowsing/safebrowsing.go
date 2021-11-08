@@ -12,14 +12,10 @@ type Validator struct {
 	safebrowser *safebrowsing.SafeBrowser
 }
 
-func (s *Validator) ValidateURL(aLongURL string) (bool, error) {
-	return s.ValidateURLs([]string{aLongURL})
-}
-
 func (s *Validator) ValidateURLs(urls []string) (bool, error) {
 	threats, err := s.safebrowser.LookupURLs(urls)
 	if err != nil {
-		return false, fmt.Errorf("%w: %s", url.ErrUnableToValidateURL, err)
+		return false, fmt.Errorf("%w: %s", url.ErrUnableToValidateURLs, err)
 	}
 
 	for _, threat := range threats {

@@ -21,21 +21,11 @@ func (C *CSV) FormatDataToURLs(data []byte) ([]string, error) {
 		return nil, fmt.Errorf("%w: %s", url.ErrUnableToConvertDataToLongURLs, "the list of URLs is empty")
 	}
 
-	return C.deduplicateRecords(records), nil
-}
-
-func (C *CSV) deduplicateRecords(records [][]string) []string {
-	set := map[string]struct{}{}
-	for _, record := range records {
-		// TODO check what happens if the contents are empty in a record
-		set[record[0]] = struct{}{}
+	urls := make([]string, 0, len(records))
+	for _, line := range records {
+		urls = append(urls, line[0])
 	}
-
-	uniqueElements := []string{}
-	for element := range set {
-		uniqueElements = append(uniqueElements, element)
-	}
-	return uniqueElements
+	return urls, nil
 }
 
 func NewCSV() *CSV {

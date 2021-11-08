@@ -88,7 +88,7 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 	}
 }
 
-func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.MultipleValidator) http.HandlerFunc {
+func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
 	csvShortener := url.NewFileURLShortener(repository, validator, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
