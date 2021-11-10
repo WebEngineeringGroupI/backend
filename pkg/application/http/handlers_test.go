@@ -127,6 +127,14 @@ var _ = Describe("Application / HTTP", func() {
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
 		})
+		Context("but form-data name field is not equal to 'file'", func() {
+			It("returns StatusBadRequest code", func() {
+				validator.shouldReturnValidURL(true)
+				response := r.doPOSTFormRequest("/csv", badCsvFileRequest())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+			})
+		})
 	})
 
 	Context("when it retrieves an HTTP request to an unknown endpoint", func() {
@@ -141,6 +149,16 @@ var _ = Describe("Application / HTTP", func() {
 func csvFileRequest() io.Reader {
 	 return strings.NewReader(`--unaCadenaDelimitadora
 Content-Disposition: form-data; name="file"
+Content-Type: text/csv
+
+google.com
+youtube.com
+--unaCadenaDelimitadora--`)
+}
+
+func badCsvFileRequest() io.Reader {
+	return strings.NewReader(`--unaCadenaDelimitadora
+Content-Disposition: form-data; name="badName"
 Content-Type: text/csv
 
 google.com
