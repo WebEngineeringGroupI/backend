@@ -14,9 +14,9 @@ type testingRouter struct {
 	config http.Config
 }
 
-func(t *testingRouter) doPOSTFormRequest(path string, body io.Reader) *gohttp.Response {
+func (t *testingRouter) doPOSTFormRequest(path string, body io.Reader) *gohttp.Response {
 	request, err := gohttp.NewRequest(gohttp.MethodPost, path, body)
-	request.Header.Set("Content-Type","multipart/form-data; boundary=unaCadenaDelimitadora")
+	request.Header.Set("Content-Type", "multipart/form-data; boundary=unaCadenaDelimitadora")
 	ExpectWithOffset(1, err).To(Succeed())
 
 	recorder := httptest.NewRecorder()

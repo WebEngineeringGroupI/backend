@@ -147,7 +147,7 @@ var _ = Describe("Application / HTTP", func() {
 })
 
 func csvFileRequest() io.Reader {
-	 return strings.NewReader(`--unaCadenaDelimitadora
+	return strings.NewReader(`--unaCadenaDelimitadora
 Content-Disposition: form-data; name="file"
 Content-Type: text/csv
 
