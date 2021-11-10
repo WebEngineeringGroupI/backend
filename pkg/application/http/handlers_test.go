@@ -95,7 +95,7 @@ var _ = Describe("Application / HTTP", func() {
 
 	Context("when it retrieves an HTTP request to shorten a CSV file", func() {
 		It("returns a CSV with the URLs shortened", func() {
-			response := r.doPOSTRequest("/csv", csvFileRequest())
+			response := r.doPOSTFormRequest("/csv", csvFileRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusCreated))
 			Expect(response.Header.Get("Content-type")).To(Equal("text/csv"))
@@ -113,7 +113,7 @@ var _ = Describe("Application / HTTP", func() {
 
 		Context("but the CSV is empty", func() {
 			It("returns a bad request code", func() {
-				response := r.doPOSTRequest("/csv", bytes.NewReader([]byte("")))
+				response := r.doPOSTFormRequest("/csv", bytes.NewReader([]byte("")))
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
@@ -122,7 +122,7 @@ var _ = Describe("Application / HTTP", func() {
 		Context("but a long URL is invalid", func() {
 			It("returns StatusBadRequest code", func() {
 				validator.shouldReturnValidURL(false)
-				response := r.doPOSTRequest("/csv", csvFileRequest())
+				response := r.doPOSTFormRequest("/csv", csvFileRequest())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 			})
@@ -139,8 +139,13 @@ var _ = Describe("Application / HTTP", func() {
 })
 
 func csvFileRequest() io.Reader {
-	return bytes.NewReader([]byte(`google.com
-youtube.com`))
+	 return strings.NewReader(`--unaCadenaDelimitadora
+Content-Disposition: form-data; name="file"
+Content-Type: text/csv
+
+google.com
+youtube.com
+--unaCadenaDelimitadora--`)
 }
 
 func csvFileResponse() string {
