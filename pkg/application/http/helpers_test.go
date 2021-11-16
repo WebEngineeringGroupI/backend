@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	//"github.com/gorilla/websocket"
 	"io"
 	gohttp "net/http"
 	"net/http/httptest"
@@ -35,6 +36,15 @@ func (t *testingRouter) doGETRequest(path string) *gohttp.Response {
 
 	return recorder.Result()
 }
+
+func (t *testingRouter) doWebSocketRequest(path string) *gohttp.Response {
+	//TODO(fede): Set fake ws client
+	//_ ,response, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws/link",nil)
+	//ExpectWithOffset(1, err).To(Succeed())
+	//return response
+	return nil
+}
+
 
 func newTestingRouter(config http.Config) *testingRouter {
 	return &testingRouter{

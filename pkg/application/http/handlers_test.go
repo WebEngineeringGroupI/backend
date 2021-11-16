@@ -136,6 +136,15 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response.StatusCode).To(Equal(gohttp.StatusNotFound))
 		})
 	})
+
+	Context("When it retreives an WS message for a short url", func() {
+		FIt("returns the short url", func() {
+			//TODO(fede):Implement
+			response := r.doWebSocketRequest("/ws/link")
+			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
+			Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
+		})
+	})
 })
 
 func csvFileRequest() io.Reader {

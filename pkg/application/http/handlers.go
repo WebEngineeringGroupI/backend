@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"net/http"
@@ -65,6 +66,27 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 			log.Printf("error marshaling the response: %s", err)
 			return
 		}
+	}
+}
+
+
+
+func (e *HandlerRepository) wsshortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
+	//urlShortener := url.NewSingleURLShortener(repository, validator)
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	return func(writer http.ResponseWriter, request *http.Request) {
+		ws, err := upgrader.Upgrade(writer, request, nil)
+		if err != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			log.Printf("error upgrading to websocket connection: %s", err)
+			return
+		}
+		defer ws.Close()
+		//TODO: read a message, process, and write the response
 	}
 }
 
