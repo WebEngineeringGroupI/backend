@@ -9,6 +9,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 )
 
 type factory struct{}
@@ -21,7 +22,13 @@ func (f *factory) httpConfig() http.Config {
 	return http.Config{
 		BaseDomain:         f.baseDomain(),
 		ShortURLRepository: f.shortURLRepository(),
+		CustomMetrics: f.CustomMetrics(),
 	}
+}
+
+func (f *factory) CustomMetrics() metrics.CustomMetrics {
+	customMetrics := metrics.NewCustomMetrics()
+	return customMetrics
 }
 
 func (f *factory) baseDomain() string {

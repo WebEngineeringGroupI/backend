@@ -7,11 +7,13 @@ import (
 	"github.com/rs/cors"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 )
 
 type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
+	CustomMetrics metrics.CustomMetrics
 }
 
 func NewRouter(config Config) http.Handler {

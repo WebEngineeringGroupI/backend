@@ -12,3 +12,7 @@ type ShortURLRepository interface {
 	FindByHash(hash string) (*ShortURL, error)
 	Save(url *ShortURL) error
 }
+
+type Metrics interface {
+	RecordUrlShorted()
+}

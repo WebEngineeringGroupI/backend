@@ -10,6 +10,7 @@ import (
 
 type Shortener struct {
 	repository ShortURLRepository
+	metrics Metrics
 }
 
 type ShortURL struct {
@@ -40,6 +41,7 @@ func (s *Shortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
+	s.metrics.RecordUrlShorted()
 	return shortURL, nil
 }
 
