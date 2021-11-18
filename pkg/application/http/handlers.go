@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -98,12 +97,7 @@ func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, vali
 	csvShortener := url.NewFileURLShortener(repository, validator, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
-		data, err := io.ReadAll(request.Body)
-		if err != nil {
-			http.Error(writer, "unable to read all request body", http.StatusInternalServerError)
-			return
-		}
-
+		data := []byte(request.FormValue("file"))
 		shortURLs, err := csvShortener.HashesFromURLData(data)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) || errors.Is(err, url.ErrUnableToConvertDataToLongURLs) {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
