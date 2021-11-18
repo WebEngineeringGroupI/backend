@@ -1,6 +1,13 @@
 
-migrate-db:
+build: deps
+	go build -v ./...
+
+deps:
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/onsi/ginkgo/ginkgo@v1
+
+migrate-db: deps
 	migrate -path ./database/migrate/ -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
 
 run-db:
@@ -12,17 +19,15 @@ kill-db:
 
 fmt:
 	find -iname '*.go' | xargs -L1 gofmt -s -w
+	go mod tidy
 
-lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+lint: deps
 	golangci-lint run --timeout 1h
 
-test-unit:
-	go install github.com/onsi/ginkgo/ginkgo@v1
+test-unit: deps
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -skipPackage ./pkg/infrastructure
 
-test-integration: run-db
-	go install github.com/onsi/ginkgo/ginkgo@v1
+test-integration: run-db deps
 	sleep 10 # Give some time to DB to be launched
 	$(MAKE) migrate-db
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover ./pkg/infrastructure

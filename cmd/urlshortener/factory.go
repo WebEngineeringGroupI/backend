@@ -1,17 +1,24 @@
 package main
 
 import (
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/CustomMetrics"
 	"log"
 	gohttp "net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/reachable"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/safebrowsing"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/schema"
 )
 
-type factory struct{}
+type factory struct {
+}
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
 	return http.NewRouter(f.httpConfig())
@@ -21,7 +28,13 @@ func (f *factory) httpConfig() http.Config {
 	return http.Config{
 		BaseDomain:         f.baseDomain(),
 		ShortURLRepository: f.shortURLRepository(),
+		URLValidator:       f.urlValidator(),
+		CustomMetrics:		f.customMetrics(),
 	}
+}
+
+func (f *factory) customMetrics() CustomMetrics.RecordMetrics{
+	return CustomMetrics.NewCustomMetrics()
 }
 
 func (f *factory) baseDomain() string {
@@ -62,6 +75,16 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 		log.Fatalf("mandatory %s env var is not set", variable)
 	}
 	return value
+}
+
+func (f *factory) urlValidator() url.Validator {
+	schemaValidator := schema.NewValidator("http", "https")
+	reachableValidator := reachable.NewValidator(gohttp.DefaultClient, 2*time.Second)
+	safeBrowsingValidator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
+	if err != nil {
+		log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
+	}
+	return pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 }
 
 func newFactory() *factory {
