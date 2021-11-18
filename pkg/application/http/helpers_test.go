@@ -1,11 +1,13 @@
 package http_test
 
 import (
-	//"github.com/gorilla/websocket"
+	"fmt"
 	"io"
 	gohttp "net/http"
 	"net/http/httptest"
+	"strings"
 
+	"github.com/gorilla/websocket"
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
@@ -37,17 +39,43 @@ func (t *testingRouter) doGETRequest(path string) *gohttp.Response {
 	return recorder.Result()
 }
 
-func (t *testingRouter) doWebSocketRequest(path string) *gohttp.Response {
-	//TODO(fede): Set fake ws client
-	//_ ,response, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws/link",nil)
-	//ExpectWithOffset(1, err).To(Succeed())
-	//return response
-	return nil
-}
+func (t *testingRouter) doWebSocketHandshake(path string) (*gohttp.Response, error) {
+	server := httptest.NewServer(http.NewRouter(t.config))
+	defer server.Close()
+	serverURL := fmt.Sprintf("%s/%s", strings.Replace(server.URL, "http", "ws", 1), strings.TrimPrefix(path, "/"))
 
+	conn, response, err := websocket.DefaultDialer.Dial(serverURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	return response, nil
+}
 
 func newTestingRouter(config http.Config) *testingRouter {
 	return &testingRouter{
 		config: config,
 	}
+}
+
+type FakeURLValidator struct {
+	returnValidURL bool
+	returnError    error
+}
+
+func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
+	f.returnValidURL = validURL
+}
+
+func (f *FakeURLValidator) shouldReturnError(err error) {
+	f.returnError = err
+}
+
+func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
+	return f.returnValidURL, f.returnError
+}
+
+func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
+	return f.returnValidURL, f.returnError
 }

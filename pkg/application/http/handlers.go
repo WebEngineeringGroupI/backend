@@ -4,28 +4,29 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"net/http"
-	"strings"
 
+	gorillaws "github.com/gorilla/websocket"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/application/websocket"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/redirect"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/formatter"
 )
 
 type HandlerRepository struct {
-	baseDomain        string
 	variableExtractor VariableExtractor
+	wholeURL          *domain.WholeURL
 }
 
 type VariableExtractor interface {
 	Extract(request *http.Request, key string) string
 }
 
-func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
+func (e *HandlerRepository) Shortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
 	urlShortener := url.NewSingleURLShortener(repository, validator)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -58,7 +59,7 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 		}
 
 		dataOut := shortURLDataOut{
-			URL: fmt.Sprintf("%s/r/%s", e.baseDomain, shortURL.Hash),
+			URL: e.wholeURL.FromHash(shortURL.Hash),
 		}
 		err = json.NewEncoder(writer).Encode(&dataOut)
 		if err != nil {
@@ -69,28 +70,7 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 	}
 }
 
-
-
-func (e *HandlerRepository) wsshortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
-	//urlShortener := url.NewSingleURLShortener(repository, validator)
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	return func(writer http.ResponseWriter, request *http.Request) {
-		ws, err := upgrader.Upgrade(writer, request, nil)
-		if err != nil {
-			writer.WriteHeader(http.StatusInternalServerError)
-			log.Printf("error upgrading to websocket connection: %s", err)
-			return
-		}
-		defer ws.Close()
-		//TODO: read a message, process, and write the response
-	}
-}
-
-func (e *HandlerRepository) redirector(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
+func (e *HandlerRepository) Redirector(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
 	redirector := redirect.NewRedirector(repository, validator)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -110,13 +90,13 @@ func (e *HandlerRepository) redirector(repository url.ShortURLRepository, valida
 	}
 }
 
-func (e *HandlerRepository) notFound() http.HandlerFunc {
+func (e *HandlerRepository) NotFound() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		http.NotFound(writer, request)
 	}
 }
 
-func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
+func (e *HandlerRepository) CSVShortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
 	csvShortener := url.NewFileURLShortener(repository, validator, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
@@ -142,7 +122,7 @@ func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, vali
 		for _, shortURL := range shortURLs {
 			dataOut = append(dataOut, []string{
 				shortURL.LongURL,
-				fmt.Sprintf("%s/r/%s", e.baseDomain, shortURL.Hash),
+				e.wholeURL.FromHash(shortURL.Hash),
 				"",
 			})
 		}
@@ -159,9 +139,41 @@ func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, vali
 	}
 }
 
-func NewHandlerRepository(baseDomain string, variableExtractor VariableExtractor) *HandlerRepository {
+func (e *HandlerRepository) WSHandler(config Config) http.HandlerFunc {
+	urlShortener := url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator)
+	websocketMessageHandler := websocket.NewMessageHandler(config.WholeURL, urlShortener)
+
+	var upgrader = gorillaws.Upgrader{}
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+	return func(writer http.ResponseWriter, request *http.Request) {
+		ws, err := upgrader.Upgrade(writer, request, nil)
+		if err != nil {
+			http.Error(writer, "error upgrading to websocket connection", http.StatusInternalServerError)
+			log.Printf("error upgrading to websocket connection: %s", err)
+			return
+		}
+		defer ws.Close()
+
+		for {
+			messageType, message, err := ws.ReadMessage()
+			if err != nil {
+				log.Printf("error reading message from websocket: %s", err)
+				break
+			}
+			responseType, response := websocketMessageHandler.HandleMessage(messageType, message)
+			err = ws.WriteMessage(responseType, response)
+			if err != nil {
+				log.Printf("error writing message to websocket: %s", err)
+				break
+			}
+		}
+	}
+}
+
+func NewHandlerRepository(wholeURL *domain.WholeURL, variableExtractor VariableExtractor) *HandlerRepository {
 	return &HandlerRepository{
-		baseDomain:        strings.TrimSuffix(baseDomain, "/"),
+		wholeURL:          wholeURL,
 		variableExtractor: variableExtractor,
 	}
 }

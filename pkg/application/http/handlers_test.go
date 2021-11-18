@@ -11,11 +11,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
-var _ = Describe("Application / HTTP", func() {
+var _ = Describe("Application / HTTP / REST", func() {
 	var (
 		r                  *testingRouter
 		shortURLRepository url.ShortURLRepository
@@ -26,7 +27,7 @@ var _ = Describe("Application / HTTP", func() {
 		validator = &FakeURLValidator{returnValidURL: true}
 
 		r = newTestingRouter(http.Config{
-			BaseDomain:         "http://example.com",
+			WholeURL:           domain.NewWholeURL("http://example.com"),
 			ShortURLRepository: shortURLRepository,
 			URLValidator:       validator,
 		})
@@ -137,12 +138,21 @@ var _ = Describe("Application / HTTP", func() {
 		})
 	})
 
-	Context("When it retreives an WS message for a short url", func() {
-		FIt("returns the short url", func() {
-			//TODO(fede):Implement
-			response := r.doWebSocketRequest("/ws/link")
-			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
-			Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
+	Context("when connecting to a websocket", func() {
+		It("switches the protocol from http to websocket", func() {
+			response, err := r.doWebSocketHandshake("/ws/link")
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.StatusCode).To(Equal(gohttp.StatusSwitchingProtocols))
+		})
+
+		Context("when the endpoint is not websocket", func() {
+			It("returns an error", func() {
+				response, err := r.doWebSocketHandshake("/unknown/path")
+
+				Expect(err).To(MatchError("websocket: bad handshake"))
+				Expect(response).To(BeNil())
+			})
 		})
 	})
 })
@@ -189,25 +199,4 @@ func readAll(reader io.Reader) string {
 
 	ExpectWithOffset(1, err).To(Succeed())
 	return string(bytes)
-}
-
-type FakeURLValidator struct {
-	returnValidURL bool
-	returnError    error
-}
-
-func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
-	f.returnValidURL = validURL
-}
-
-func (f *FakeURLValidator) shouldReturnError(err error) {
-	f.returnError = err
-}
-
-func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
-func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
-	return f.returnValidURL, f.returnError
 }

@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/google/safebrowsing v0.0.0-20190624211811-bbf0d20d26b3
+	github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.10.2
 	github.com/onsi/ginkgo v1.16.5

@@ -6,11 +6,12 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 type Config struct {
-	BaseDomain         string
+	WholeURL           *domain.WholeURL
 	ShortURLRepository url.ShortURLRepository
 	URLValidator       url.Validator
 }
@@ -35,12 +36,13 @@ func httprouterVariableExtractor() variableExtractorFunc {
 }
 
 func registerPaths(router *httprouter.Router, config Config) {
-	h := NewHandlerRepository(config.BaseDomain, httprouterVariableExtractor())
+	restHandler := NewHandlerRepository(config.WholeURL, httprouterVariableExtractor())
 
-	router.Handler(http.MethodPost, "/api/v1/link", h.shortener(config.ShortURLRepository, config.URLValidator))
-	router.Handler(http.MethodGet, "/ws/link", h.wsshortener(config.ShortURLRepository, config.URLValidator))
-	router.Handler(http.MethodPost, "/csv", h.csvShortener(config.ShortURLRepository, config.URLValidator))
-	router.Handler(http.MethodGet, "/r/:hash", h.redirector(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodPost, "/api/v1/link", restHandler.Shortener(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodPost, "/csv", restHandler.CSVShortener(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodGet, "/r/:hash", restHandler.Redirector(config.ShortURLRepository, config.URLValidator))
 
-	router.NotFound = h.notFound()
+	router.Handler(http.MethodGet, "/ws/link", restHandler.WSHandler(config))
+
+	router.NotFound = restHandler.NotFound()
 }

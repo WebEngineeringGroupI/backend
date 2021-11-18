@@ -17,9 +17,7 @@ type FileURLShortener struct {
 	formatter  Formatter
 }
 
-func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
-	var shortURLs []ShortURL
-
+func (s *FileURLShortener) HashesFromURLData(data []byte) (shortURLs []ShortURL, err error) {
 	longURLs, err := s.formatter.FormatDataToURLs(data)
 	if err != nil {
 		return nil, err

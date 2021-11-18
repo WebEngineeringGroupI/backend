@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
@@ -25,7 +26,7 @@ func (f *factory) NewHTTPRouter() gohttp.Handler {
 
 func (f *factory) httpConfig() http.Config {
 	return http.Config{
-		BaseDomain:         f.baseDomain(),
+		WholeURL:           domain.NewWholeURL(f.baseDomain()),
 		ShortURLRepository: f.shortURLRepository(),
 		URLValidator:       f.urlValidator(),
 	}
