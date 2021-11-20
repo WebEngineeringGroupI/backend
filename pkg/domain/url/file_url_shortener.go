@@ -12,9 +12,9 @@ type Formatter interface {
 }
 
 type FileURLShortener struct {
-	repository ShortURLRepository
-	validator  Validator
-	formatter  Formatter
+	repository    ShortURLRepository
+	validator     Validator
+	formatter     Formatter
 	recordMetrics RecordMetrics
 }
 
@@ -52,7 +52,7 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 	// Increment number of Urls processed
 	s.recordMetrics.RecordUrlsProcessed()
 	// Increment number of FileUrls processed
-	s.recordMetrics.RecordFileUrlMetrics()
+	s.recordMetrics.RecordFileURLMetrics()
 
 	return shortURLs, nil
 }

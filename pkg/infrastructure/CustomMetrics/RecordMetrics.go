@@ -6,13 +6,13 @@ import (
 )
 
 type RecordMetrics struct {
-	urlsProcessed	prometheus.Counter
-	singleUrlsProcessed	prometheus.Counter
-	multipleUrlsProcessed	prometheus.Counter
-	fileUrlsProcessed	prometheus.Counter
+	urlsProcessed         prometheus.Counter
+	singleUrlsProcessed   prometheus.Counter
+	multipleUrlsProcessed prometheus.Counter
+	fileUrlsProcessed     prometheus.Counter
 }
 
-func NewCustomMetrics() RecordMetrics{
+func NewCustomMetrics() RecordMetrics {
 	var urlsProcessed = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "urlshortener_urls_processed_total",
 		Help: "The total number of shorted urls",
@@ -34,10 +34,10 @@ func NewCustomMetrics() RecordMetrics{
 	})
 
 	return RecordMetrics{
-		urlsProcessed: urlsProcessed,
-		singleUrlsProcessed: singleUrlsProcessed,
+		urlsProcessed:         urlsProcessed,
+		singleUrlsProcessed:   singleUrlsProcessed,
 		multipleUrlsProcessed: multipleUrlsProcessed,
-		fileUrlsProcessed: fileUrlsProcessed,
+		fileUrlsProcessed:     fileUrlsProcessed,
 	}
 }
 
@@ -47,19 +47,19 @@ func (r *RecordMetrics) RecordUrlsProcessed() {
 	}()
 }
 
-func (r *RecordMetrics) RecordSingleUrlMetrics() {
+func (r *RecordMetrics) RecordSingleURLMetrics() {
 	go func() {
 		r.singleUrlsProcessed.Inc()
 	}()
 }
 
-func (r *RecordMetrics) RecordMultipleUrlMetrics() {
+func (r *RecordMetrics) RecordMultipleURLMetrics() {
 	go func() {
 		r.multipleUrlsProcessed.Inc()
 	}()
 }
 
-func (r *RecordMetrics) RecordFileUrlMetrics() {
+func (r *RecordMetrics) RecordFileURLMetrics() {
 	go func() {
 		r.fileUrlsProcessed.Inc()
 	}()

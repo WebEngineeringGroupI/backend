@@ -14,8 +14,8 @@ type ShortURLRepository interface {
 }
 
 type RecordMetrics interface {
-	RecordSingleUrlMetrics()
-	RecordMultipleUrlMetrics()
-	RecordFileUrlMetrics()
+	RecordSingleURLMetrics()
+	RecordMultipleURLMetrics()
+	RecordFileURLMetrics()
 	RecordUrlsProcessed()
 }
