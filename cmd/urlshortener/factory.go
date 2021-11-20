@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/CustomMetrics"
 	"log"
 	gohttp "net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/CustomMetrics"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"

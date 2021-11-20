@@ -1,9 +1,10 @@
 package http
 
 import (
+	"net/http"
+
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/CustomMetrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
