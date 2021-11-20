@@ -29,11 +29,11 @@ func (f *factory) httpConfig() http.Config {
 		BaseDomain:         f.baseDomain(),
 		ShortURLRepository: f.shortURLRepository(),
 		URLValidator:       f.urlValidator(),
-		CustomMetrics:		f.customMetrics(),
+		CustomMetrics:      f.customMetrics(),
 	}
 }
 
-func (f *factory) customMetrics() CustomMetrics.RecordMetrics{
+func (f *factory) customMetrics() CustomMetrics.RecordMetrics {
 	return CustomMetrics.NewCustomMetrics()
 }
 

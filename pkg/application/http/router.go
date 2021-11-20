@@ -15,7 +15,7 @@ type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
 	URLValidator       url.Validator
-	CustomMetrics	CustomMetrics.RecordMetrics
+	CustomMetrics      CustomMetrics.RecordMetrics
 }
 
 func NewRouter(config Config) http.Handler {
