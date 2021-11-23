@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	gogrpc "google.golang.org/grpc"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
@@ -17,6 +20,8 @@ import (
 )
 
 type factory struct {
+	shortURLRepositorySingleton url.ShortURLRepository
+	urlValidatorSingleton       url.Validator
 }
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
@@ -40,11 +45,14 @@ func (f *factory) baseDomain() string {
 }
 
 func (f *factory) shortURLRepository() url.ShortURLRepository {
-	db, err := postgres.NewDB(f.postgresConnectionDetails())
-	if err != nil {
-		log.Fatalf("unable to create the database connection: %s", err)
+	if f.shortURLRepositorySingleton == nil {
+		db, err := postgres.NewDB(f.postgresConnectionDetails())
+		if err != nil {
+			log.Fatalf("unable to create the database connection: %s", err)
+		}
+		f.shortURLRepositorySingleton = db
 	}
-	return db
+	return f.shortURLRepositorySingleton
 }
 
 func (f *factory) postgresConnectionDetails() postgres.ConnectionDetails {
@@ -72,13 +80,24 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 }
 
 func (f *factory) urlValidator() url.Validator {
-	schemaValidator := schema.NewValidator("http", "https")
-	reachableValidator := reachable.NewValidator(gohttp.DefaultClient, 2*time.Second)
-	safeBrowsingValidator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
-	if err != nil {
-		log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
+	if f.urlValidatorSingleton == nil {
+		schemaValidator := schema.NewValidator("http", "https")
+		reachableValidator := reachable.NewValidator(gohttp.DefaultClient, 2*time.Second)
+		safeBrowsingValidator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
+		if err != nil {
+			log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
+		}
+		f.urlValidatorSingleton = pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 	}
-	return pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
+	return f.urlValidatorSingleton
+}
+
+func (f *factory) NewGRPCServer() *gogrpc.Server {
+	return grpc.NewServer(grpc.Config{
+		BaseDomain:         f.baseDomain(),
+		ShortURLRepository: f.shortURLRepository(),
+		URLValidator:       f.urlValidator(),
+	})
 }
 
 func newFactory() *factory {

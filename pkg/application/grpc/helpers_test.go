@@ -13,7 +13,7 @@ import (
 )
 
 func newTestingConnection(config grpc.Config) (*gogrpc.ClientConn, context.CancelFunc) {
-	listener := bufconn.Listen(1024*1024)
+	listener := bufconn.Listen(1024 * 1024)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	server := grpc.NewServer(config)
