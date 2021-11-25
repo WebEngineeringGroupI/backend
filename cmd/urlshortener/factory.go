@@ -38,7 +38,7 @@ func (f *factory) httpConfig() http.Config {
 	}
 }
 
-func (f *factory) customMetrics() metrics.PrometheusMetrics {
+func (f *factory) customMetrics() url.Metrics {
 	return metrics.NewPrometheusMetrics()
 }
 
