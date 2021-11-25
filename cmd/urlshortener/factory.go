@@ -23,10 +23,15 @@ import (
 type factory struct {
 	shortURLRepositorySingleton url.ShortURLRepository
 	urlValidatorSingleton       url.Validator
+	metricsSingleton            url.Metrics
 }
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
 	return http.NewRouter(f.httpConfig())
+}
+
+func (f *factory) NewGRPCServer() *gogrpc.Server {
+	return grpc.NewServer(f.grpcConfig())
 }
 
 func (f *factory) httpConfig() http.Config {
@@ -38,8 +43,20 @@ func (f *factory) httpConfig() http.Config {
 	}
 }
 
+func (f *factory) grpcConfig() grpc.Config {
+	return grpc.Config{
+		BaseDomain:         f.baseDomain(),
+		ShortURLRepository: f.shortURLRepository(),
+		URLValidator:       f.urlValidator(),
+		CustomMetrics:      f.customMetrics(),
+	}
+}
+
 func (f *factory) customMetrics() url.Metrics {
-	return metrics.NewPrometheusMetrics()
+	if f.metricsSingleton == nil {
+		f.metricsSingleton = metrics.NewPrometheusMetrics()
+	}
+	return f.metricsSingleton
 }
 
 func (f *factory) baseDomain() string {
@@ -96,14 +113,6 @@ func (f *factory) urlValidator() url.Validator {
 		f.urlValidatorSingleton = pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 	}
 	return f.urlValidatorSingleton
-}
-
-func (f *factory) NewGRPCServer() *gogrpc.Server {
-	return grpc.NewServer(grpc.Config{
-		BaseDomain:         f.baseDomain(),
-		ShortURLRepository: f.shortURLRepository(),
-		URLValidator:       f.urlValidator(),
-	})
 }
 
 func newFactory() *factory {

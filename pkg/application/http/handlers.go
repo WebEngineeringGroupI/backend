@@ -23,8 +23,8 @@ type VariableExtractor interface {
 	Extract(request *http.Request, key string) string
 }
 
-func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
-	urlShortener := url.NewSingleURLShortener(repository, validator)
+func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validator url.Validator, metrics url.Metrics) http.HandlerFunc {
+	urlShortener := url.NewSingleURLShortener(repository, validator, metrics)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn
@@ -93,8 +93,8 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 	}
 }
 
-func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
-	csvShortener := url.NewFileURLShortener(repository, validator, formatter.NewCSV())
+func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.Validator, metrics url.Metrics) http.HandlerFunc {
+	csvShortener := url.NewFileURLShortener(repository, validator, metrics, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		data := []byte(request.FormValue("file"))

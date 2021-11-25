@@ -20,15 +20,17 @@ var _ = Describe("Application / HTTP", func() {
 		r                  *testingRouter
 		shortURLRepository url.ShortURLRepository
 		validator          *FakeURLValidator
+		metrics            *FakeMetrics
 	)
 	BeforeEach(func() {
 		shortURLRepository = inmemory.NewRepository()
 		validator = &FakeURLValidator{returnValidURL: true}
-
+		metrics = &FakeMetrics{}
 		r = newTestingRouter(http.Config{
 			BaseDomain:         "http://example.com",
 			ShortURLRepository: shortURLRepository,
 			URLValidator:       validator,
+			CustomMetrics:      metrics,
 		})
 	})
 
@@ -203,25 +205,4 @@ func readAll(reader io.Reader) string {
 
 	ExpectWithOffset(1, err).To(Succeed())
 	return string(bytes)
-}
-
-type FakeURLValidator struct {
-	returnValidURL bool
-	returnError    error
-}
-
-func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
-	f.returnValidURL = validURL
-}
-
-func (f *FakeURLValidator) shouldReturnError(err error) {
-	f.returnError = err
-}
-
-func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
-func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
-	return f.returnValidURL, f.returnError
 }

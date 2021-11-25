@@ -57,3 +57,26 @@ func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
 func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
 	return f.returnValidURL, f.returnError
 }
+
+type FakeMetrics struct {
+	singleURLMetrics   int
+	multipleURLMetrics int
+	fileURLMetrics     int
+	urlsProcessed      int
+}
+
+func (f *FakeMetrics) RecordSingleURLMetrics() {
+	f.singleURLMetrics++
+}
+
+func (f *FakeMetrics) RecordMultipleURLMetrics() {
+	f.multipleURLMetrics++
+}
+
+func (f *FakeMetrics) RecordFileURLMetrics() {
+	f.fileURLMetrics++
+}
+
+func (f *FakeMetrics) RecordUrlsProcessed() {
+	f.urlsProcessed++
+}

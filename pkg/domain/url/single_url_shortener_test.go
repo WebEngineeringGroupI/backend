@@ -15,12 +15,14 @@ var _ = Describe("Single URL shortener", func() {
 		shortener  *url.SingleURLShortener
 		repository url.ShortURLRepository
 		validator  *FakeURLValidator
+		metrics    *FakeMetrics
 	)
 
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
 		validator = &FakeURLValidator{returnValidURL: true}
-		shortener = url.NewSingleURLShortener(repository, validator)
+		metrics = &FakeMetrics{}
+		shortener = url.NewSingleURLShortener(repository, validator, metrics)
 	})
 
 	Context("when providing a long URL", func() {
@@ -30,6 +32,8 @@ var _ = Describe("Single URL shortener", func() {
 
 			Expect(err).To(Succeed())
 			Expect(shortURL.Hash).To(HaveLen(8))
+			Expect(metrics.urlsProcessed).To(Equal(1))
+			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})
 
 		It("contains the real value from the original URL", func() {
@@ -38,6 +42,8 @@ var _ = Describe("Single URL shortener", func() {
 
 			Expect(err).To(Succeed())
 			Expect(shortURL.LongURL).To(Equal(aLongURL))
+			Expect(metrics.urlsProcessed).To(Equal(1))
+			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})
 
 		Context("and the provided URL is not valid", func() {
@@ -48,6 +54,8 @@ var _ = Describe("Single URL shortener", func() {
 
 				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
 				Expect(shortURL).To(BeNil())
+				Expect(metrics.urlsProcessed).To(Equal(0))
+				Expect(metrics.singleURLMetrics).To(Equal(1))
 			})
 		})
 
@@ -59,6 +67,8 @@ var _ = Describe("Single URL shortener", func() {
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURL).To(BeNil())
+				Expect(metrics.urlsProcessed).To(Equal(0))
+				Expect(metrics.singleURLMetrics).To(Equal(1))
 			})
 		})
 
@@ -71,6 +81,8 @@ var _ = Describe("Single URL shortener", func() {
 				Expect(err).To(Succeed())
 
 				Expect(shortGoogleURL.Hash).ToNot(Equal(shortFacebookURL.Hash))
+				Expect(metrics.urlsProcessed).To(Equal(2))
+				Expect(metrics.singleURLMetrics).To(Equal(2))
 			})
 		})
 

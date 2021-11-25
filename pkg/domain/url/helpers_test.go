@@ -37,3 +37,26 @@ func (f *FakeFormatter) shouldReturnError(err error) {
 func (f *FakeFormatter) FormatDataToURLs(data []byte) ([]string, error) {
 	return f.longURLs, f.error
 }
+
+type FakeMetrics struct {
+	singleURLMetrics   int
+	multipleURLMetrics int
+	fileURLMetrics     int
+	urlsProcessed      int
+}
+
+func (f *FakeMetrics) RecordSingleURLMetrics() {
+	f.singleURLMetrics++
+}
+
+func (f *FakeMetrics) RecordMultipleURLMetrics() {
+	f.multipleURLMetrics++
+}
+
+func (f *FakeMetrics) RecordFileURLMetrics() {
+	f.fileURLMetrics++
+}
+
+func (f *FakeMetrics) RecordUrlsProcessed() {
+	f.urlsProcessed++
+}
