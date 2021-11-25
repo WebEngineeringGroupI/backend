@@ -18,13 +18,16 @@ var _ = Describe("Server", func() {
 		connection      gogrpc.ClientConnInterface
 		closeConnection context.CancelFunc
 		urlValidator    *FakeURLValidator
+		metrics         *FakeMetrics
 	)
 	BeforeEach(func() {
 		urlValidator = &FakeURLValidator{returnValidURL: true}
+		metrics = &FakeMetrics{}
 		connection, closeConnection = newTestingConnection(grpc.Config{
 			BaseDomain:         "https://example.com",
 			ShortURLRepository: inmemory.NewRepository(),
 			URLValidator:       urlValidator,
+			CustomMetrics:      metrics,
 		})
 	})
 

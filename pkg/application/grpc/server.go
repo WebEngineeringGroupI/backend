@@ -60,13 +60,14 @@ type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
 	URLValidator       url.Validator
+	CustomMetrics      url.Metrics
 }
 
 func NewServer(config Config) *grpc.Server {
 	grpcServer := grpc.NewServer()
 	srv := &server{
 		baseDomain:   config.BaseDomain,
-		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator),
+		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)

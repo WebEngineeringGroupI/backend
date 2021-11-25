@@ -16,14 +16,16 @@ var _ = Describe("Multiple URL Shortener", func() {
 		repository url.ShortURLRepository
 		formatter  *FakeFormatter
 		validator  *FakeURLValidator
+		metrics    *FakeMetrics
 	)
 
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
 		validator = &FakeURLValidator{returnValidURL: true}
 		formatter = &FakeFormatter{}
+		metrics = &FakeMetrics{}
 		formatter.shouldReturnURLs(aLongURLSet())
-		shortener = url.NewFileURLShortener(repository, validator, formatter)
+		shortener = url.NewFileURLShortener(repository, validator, metrics, formatter)
 	})
 
 	Context("when providing multiple long URLs", func() {
@@ -32,6 +34,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 			Expect(err).To(Succeed())
 			Expect(shortURLs).To(HaveLen(2))
+			Expect(metrics.urlsProcessed).To(Equal(2))
+			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].Hash).To(HaveLen(8))
 			Expect(shortURLs[1].Hash).To(HaveLen(8))
 		})
@@ -40,6 +44,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
 			Expect(err).To(Succeed())
+			Expect(metrics.urlsProcessed).To(Equal(2))
+			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].LongURL).To(Equal("https://google.com"))
 			Expect(shortURLs[1].LongURL).To(Equal("https://unizar.es"))
 		})
@@ -48,6 +54,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
 			Expect(err).To(Succeed())
+			Expect(metrics.urlsProcessed).To(Equal(2))
+			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].Hash).ToNot(Equal(shortURLs[1].Hash))
 		})
 
@@ -58,6 +66,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURLs).To(BeNil())
+				Expect(metrics.urlsProcessed).To(Equal(0))
+				Expect(metrics.fileURLMetrics).To(Equal(1))
 			})
 		})
 
@@ -68,6 +78,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
 				Expect(shortURLs).To(BeNil())
+				Expect(metrics.urlsProcessed).To(Equal(0))
+				Expect(metrics.fileURLMetrics).To(Equal(1))
 			})
 		})
 
@@ -78,6 +90,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURLs).To(BeNil())
+				Expect(metrics.urlsProcessed).To(Equal(0))
+				Expect(metrics.fileURLMetrics).To(Equal(1))
 			})
 		})
 
@@ -97,23 +111,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 	})
 })
-
-type FakeFormatter struct {
-	longURLs []string
-	error    error
-}
-
-func (f *FakeFormatter) shouldReturnURLs(longURLs []string) {
-	f.longURLs = longURLs
-}
-
-func (f *FakeFormatter) shouldReturnError(err error) {
-	f.error = err
-}
-
-func (f *FakeFormatter) FormatDataToURLs(data []byte) ([]string, error) {
-	return f.longURLs, f.error
-}
 
 func aLongURLData() []byte {
 	return []byte(`"https://google.com"

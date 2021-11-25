@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
@@ -13,6 +14,7 @@ type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
 	URLValidator       url.Validator
+	CustomMetrics      url.Metrics
 }
 
 func NewRouter(config Config) http.Handler {
@@ -37,9 +39,10 @@ func httprouterVariableExtractor() variableExtractorFunc {
 func registerPaths(router *httprouter.Router, config Config) {
 	h := NewHandlerRepository(config.BaseDomain, httprouterVariableExtractor())
 
-	router.Handler(http.MethodPost, "/api/v1/link", h.shortener(config.ShortURLRepository, config.URLValidator))
-	router.Handler(http.MethodPost, "/csv", h.csvShortener(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodPost, "/api/v1/link", h.shortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics))
+	router.Handler(http.MethodPost, "/csv", h.csvShortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics))
 	router.Handler(http.MethodGet, "/r/:hash", h.redirector(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())
 
 	router.NotFound = h.notFound()
 }
