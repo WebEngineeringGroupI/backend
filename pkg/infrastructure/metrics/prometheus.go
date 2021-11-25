@@ -1,18 +1,18 @@
-package CustomMetrics
+package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-type RecordMetrics struct {
+type PrometheusMetrics struct {
 	urlsProcessed         prometheus.Counter
 	singleUrlsProcessed   prometheus.Counter
 	multipleUrlsProcessed prometheus.Counter
 	fileUrlsProcessed     prometheus.Counter
 }
 
-func NewCustomMetrics() RecordMetrics {
+func NewPrometheusMetrics() PrometheusMetrics {
 	var urlsProcessed = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "urlshortener_urls_processed_total",
 		Help: "The total number of shorted urls",
@@ -33,7 +33,7 @@ func NewCustomMetrics() RecordMetrics {
 		Help: "The total number of file shorted urls",
 	})
 
-	return RecordMetrics{
+	return PrometheusMetrics{
 		urlsProcessed:         urlsProcessed,
 		singleUrlsProcessed:   singleUrlsProcessed,
 		multipleUrlsProcessed: multipleUrlsProcessed,
@@ -41,25 +41,25 @@ func NewCustomMetrics() RecordMetrics {
 	}
 }
 
-func (r *RecordMetrics) RecordUrlsProcessed() {
+func (r *PrometheusMetrics) RecordUrlsProcessed() {
 	go func() {
 		r.urlsProcessed.Inc()
 	}()
 }
 
-func (r *RecordMetrics) RecordSingleURLMetrics() {
+func (r *PrometheusMetrics) RecordSingleURLMetrics() {
 	go func() {
 		r.singleUrlsProcessed.Inc()
 	}()
 }
 
-func (r *RecordMetrics) RecordMultipleURLMetrics() {
+func (r *PrometheusMetrics) RecordMultipleURLMetrics() {
 	go func() {
 		r.multipleUrlsProcessed.Inc()
 	}()
 }
 
-func (r *RecordMetrics) RecordFileURLMetrics() {
+func (r *PrometheusMetrics) RecordFileURLMetrics() {
 	go func() {
 		r.fileUrlsProcessed.Inc()
 	}()

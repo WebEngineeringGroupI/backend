@@ -8,9 +8,9 @@ import (
 )
 
 type SingleURLShortener struct {
-	repository    ShortURLRepository
-	validator     Validator
-	recordMetrics RecordMetrics
+	repository ShortURLRepository
+	validator  Validator
+	metrics    Metrics
 }
 
 type ShortURL struct {
@@ -42,10 +42,8 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
-	// Increment number of Urls processed
-	s.recordMetrics.RecordUrlsProcessed()
-	// Increment number of SingleUrls processed
-	s.recordMetrics.RecordSingleURLMetrics()
+	s.metrics.RecordUrlsProcessed()
+	s.metrics.RecordSingleURLMetrics()
 
 	return shortURL, nil
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/CustomMetrics"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/reachable"
@@ -38,8 +38,8 @@ func (f *factory) httpConfig() http.Config {
 	}
 }
 
-func (f *factory) customMetrics() CustomMetrics.RecordMetrics {
-	return CustomMetrics.NewCustomMetrics()
+func (f *factory) customMetrics() metrics.PrometheusMetrics {
+	return metrics.NewPrometheusMetrics()
 }
 
 func (f *factory) baseDomain() string {

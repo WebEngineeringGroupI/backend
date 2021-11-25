@@ -13,7 +13,7 @@ type ShortURLRepository interface {
 	Save(url *ShortURL) error
 }
 
-type RecordMetrics interface {
+type Metrics interface {
 	RecordSingleURLMetrics()
 	RecordMultipleURLMetrics()
 	RecordFileURLMetrics()

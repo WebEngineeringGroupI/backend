@@ -3,20 +3,19 @@ package http
 import (
 	"net/http"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/CustomMetrics"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/julienschmidt/httprouter"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 )
 
 type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
 	URLValidator       url.Validator
-	CustomMetrics      CustomMetrics.RecordMetrics
+	CustomMetrics      metrics.PrometheusMetrics
 }
 
 func NewRouter(config Config) http.Handler {
