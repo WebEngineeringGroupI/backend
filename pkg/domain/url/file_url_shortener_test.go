@@ -97,29 +97,3 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 	})
 })
-
-type FakeFormatter struct {
-	longURLs []string
-	error    error
-}
-
-func (f *FakeFormatter) shouldReturnURLs(longURLs []string) {
-	f.longURLs = longURLs
-}
-
-func (f *FakeFormatter) shouldReturnError(err error) {
-	f.error = err
-}
-
-func (f *FakeFormatter) FormatDataToURLs(data []byte) ([]string, error) {
-	return f.longURLs, f.error
-}
-
-func aLongURLData() []byte {
-	return []byte(`"https://google.com"
-"https://unizar.es"`)
-}
-
-func aLongURLSet() []string {
-	return []string{"https://google.com", "https://unizar.es"}
-}

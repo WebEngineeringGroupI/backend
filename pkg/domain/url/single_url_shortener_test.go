@@ -87,24 +87,3 @@ var _ = Describe("Single URL shortener", func() {
 		// TODO(german): What's the meaning of Safe and Sponsor in the original urlshortener implementation
 	})
 })
-
-type FakeURLValidator struct {
-	returnValidURL bool
-	returnError    error
-}
-
-func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
-	f.returnValidURL = validURL
-}
-
-func (f *FakeURLValidator) shouldReturnError(err error) {
-	f.returnError = err
-}
-
-func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
-func (f *FakeURLValidator) ValidateURLs(url []string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
