@@ -49,10 +49,6 @@ func (f *FakeMetrics) RecordSingleURLMetrics() {
 	f.singleURLMetrics++
 }
 
-func (f *FakeMetrics) RecordMultipleURLMetrics() {
-	f.multipleURLMetrics++
-}
-
 func (f *FakeMetrics) RecordFileURLMetrics() {
 	f.fileURLMetrics++
 }

@@ -49,10 +49,6 @@ func (r *PrometheusMetrics) RecordSingleURLMetrics() {
 	r.singleUrlsProcessed.Inc()
 }
 
-func (r *PrometheusMetrics) RecordMultipleURLMetrics() {
-	r.multipleUrlsProcessed.Inc()
-}
-
 func (r *PrometheusMetrics) RecordFileURLMetrics() {
 	r.fileUrlsProcessed.Inc()
 }
