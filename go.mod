@@ -3,7 +3,7 @@ module github.com/WebEngineeringGroupI/backend
 go 1.17
 
 require (
-	github.com/WebEngineeringGroupI/genproto-go v0.0.0-20211123225240-9cfe86c10250
+	github.com/WebEngineeringGroupI/genproto-go v0.0.0-20211125093943-845fdfc7faa2
 	github.com/google/safebrowsing v0.0.0-20190624211811-bbf0d20d26b3
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.10.2

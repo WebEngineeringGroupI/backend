@@ -1,14 +1,12 @@
 package grpc
 
 import (
-	"context"
 	"fmt"
+	"io"
 
 	genproto "github.com/WebEngineeringGroupI/genproto-go/api/v1alpha1"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
@@ -19,23 +17,43 @@ type server struct {
 	baseDomain   string
 }
 
-func (s *server) ShortURLs(ctx context.Context, request *genproto.ShortURLsRequest) (*genproto.ShortURLsResponse, error) {
-	results := []*genproto.ShortURLsResponse_Result{}
-
-	for _, longURL := range request.GetUrls() {
-		shortURL, err := s.urlShortener.HashFromURL(longURL)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, err.Error())
+func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServer) error {
+	for request, err := shortURLsServer.Recv(); ; request, err = shortURLsServer.Recv() {
+		if err == io.EOF {
+			return nil
 		}
-		results = append(results, &genproto.ShortURLsResponse_Result{
-			ShortUrl: fmt.Sprintf("%s/r/%s", s.baseDomain, shortURL.Hash),
-			LongUrl:  shortURL.LongURL,
-		})
-	}
+		if err != nil {
+			return err
+		}
 
-	return &genproto.ShortURLsResponse{
-		Results: results,
-	}, nil
+		shortURL, err := s.urlShortener.HashFromURL(request.Url)
+		if err != nil {
+			err := shortURLsServer.Send(&genproto.ShortURLsResponse{
+				Result: &genproto.ShortURLsResponse_Error_{
+					Error: &genproto.ShortURLsResponse_Error{
+						Url:   request.Url,
+						Error: err.Error(),
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		err = shortURLsServer.Send(&genproto.ShortURLsResponse{
+			Result: &genproto.ShortURLsResponse_Success_{
+				Success: &genproto.ShortURLsResponse_Success{
+					LongUrl:  shortURL.LongURL,
+					ShortUrl: fmt.Sprintf("%s/r/%s", s.baseDomain, shortURL.Hash),
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
 }
 
 type Config struct {
@@ -50,6 +68,7 @@ func NewServer(config Config) *grpc.Server {
 		baseDomain:   config.BaseDomain,
 		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator),
 	}
+
 	genproto.RegisterURLShorteningServer(grpcServer, srv)
 
 	reflection.Register(grpcServer)

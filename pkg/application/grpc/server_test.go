@@ -33,32 +33,46 @@ var _ = Describe("Server", func() {
 	})
 
 	Context("URLShorteningClient", func() {
-		var client genproto.URLShorteningClient
+		var (
+			client          genproto.URLShorteningClient
+			shortURLsClient genproto.URLShortening_ShortURLsClient
+		)
 		BeforeEach(func() {
 			client = genproto.NewURLShorteningClient(connection)
+			var err error
+			shortURLsClient, err = client.ShortURLs(context.Background())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("returns the URLs shorted for an API call", func() {
-			response, err := client.ShortURLs(context.Background(), &genproto.ShortURLsRequest{Urls: []string{"https://google.com", "https://youtube.com"}})
+			err := shortURLsClient.Send(&genproto.ShortURLsRequest{Url: "https://google.com"})
+			Expect(err).ToNot(HaveOccurred())
+			err = shortURLsClient.Send(&genproto.ShortURLsRequest{Url: "https://youtube.com"})
+			Expect(err).ToNot(HaveOccurred())
 
+			response, err := shortURLsClient.Recv()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).ToNot(BeNil())
-			Expect(response.Results).To(HaveLen(2))
-			Expect(response.Results[0].LongUrl).To(Equal("https://google.com"))
-			Expect(response.Results[0].ShortUrl).To(Equal("https://example.com/r/cv6VxVdu"))
-			Expect(response.Results[1].LongUrl).To(Equal("https://youtube.com"))
-			Expect(response.Results[1].ShortUrl).To(Equal("https://example.com/r/unW6a4Dd"))
+			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.LongUrl).To(Equal("https://google.com"))
+			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.ShortUrl).To(Equal("https://example.com/r/cv6VxVdu"))
+
+			response, err = shortURLsClient.Recv()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.LongUrl).To(Equal("https://youtube.com"))
+			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.ShortUrl).To(Equal("https://example.com/r/unW6a4Dd"))
 		})
 
 		When("the URL is not valid", func() {
 			It("returns the error", func() {
 				urlValidator.shouldReturnValidURL(false)
 
-				response, err := client.ShortURLs(context.Background(), &genproto.ShortURLsRequest{Urls: []string{"https://google.com", "https://youtube.com"}})
+				err := shortURLsClient.Send(&genproto.ShortURLsRequest{Url: "https://google.com"})
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid long URL specified"))
-				Expect(response).To(BeNil())
+				response, err := shortURLsClient.Recv()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Url).To(Equal("https://google.com"))
+				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Error).To(Equal("invalid long URL specified"))
 			})
 		})
 
@@ -66,11 +80,13 @@ var _ = Describe("Server", func() {
 			It("returns the error", func() {
 				urlValidator.shouldReturnError(errors.New("unknown testing error"))
 
-				response, err := client.ShortURLs(context.Background(), &genproto.ShortURLsRequest{Urls: []string{"https://google.com", "https://youtube.com"}})
+				err := shortURLsClient.Send(&genproto.ShortURLsRequest{Url: "https://google.com"})
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("unknown testing error"))
-				Expect(response).To(BeNil())
+				response, err := shortURLsClient.Recv()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Url).To(Equal("https://google.com"))
+				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Error).To(Equal("unknown testing error"))
 			})
 		})
 	})
