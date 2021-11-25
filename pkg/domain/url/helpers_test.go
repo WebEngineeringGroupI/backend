@@ -39,10 +39,9 @@ func (f *FakeFormatter) FormatDataToURLs(data []byte) ([]string, error) {
 }
 
 type FakeMetrics struct {
-	singleURLMetrics   int
-	multipleURLMetrics int
-	fileURLMetrics     int
-	urlsProcessed      int
+	singleURLMetrics int
+	fileURLMetrics   int
+	urlsProcessed    int
 }
 
 func (f *FakeMetrics) RecordSingleURLMetrics() {
