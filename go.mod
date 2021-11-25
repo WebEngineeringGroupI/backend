@@ -3,6 +3,7 @@ module github.com/WebEngineeringGroupI/backend
 go 1.17
 
 require (
+	github.com/WebEngineeringGroupI/genproto-go v0.0.0-20211125093943-845fdfc7faa2
 	github.com/google/safebrowsing v0.0.0-20190624211811-bbf0d20d26b3
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.10.2
@@ -10,6 +11,7 @@ require (
 	github.com/onsi/gomega v1.16.0
 	github.com/prometheus/client_golang v1.3.0
 	github.com/rs/cors v1.8.0
+	google.golang.org/grpc v1.42.0
 	xorm.io/xorm v1.2.5
 )
 
@@ -29,10 +31,11 @@ require (
 	github.com/prometheus/common v0.7.0 // indirect
 	github.com/prometheus/procfs v0.0.8 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781 // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/text v0.3.6 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
+	golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9 // indirect
+	golang.org/x/sys v0.0.0-20211123173158-ef496fb156ab // indirect
+	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	xorm.io/builder v0.3.9 // indirect
