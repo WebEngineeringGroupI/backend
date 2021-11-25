@@ -97,3 +97,12 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 	})
 })
+
+func aLongURLData() []byte {
+	return []byte(`"https://google.com"
+"https://unizar.es"`)
+}
+
+func aLongURLSet() []string {
+	return []string{"https://google.com", "https://unizar.es"}
+}

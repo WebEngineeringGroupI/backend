@@ -37,12 +37,3 @@ func (f *FakeFormatter) shouldReturnError(err error) {
 func (f *FakeFormatter) FormatDataToURLs(data []byte) ([]string, error) {
 	return f.longURLs, f.error
 }
-
-func aLongURLData() []byte {
-	return []byte(`"https://google.com"
-"https://unizar.es"`)
-}
-
-func aLongURLSet() []string {
-	return []string{"https://google.com", "https://unizar.es"}
-}
