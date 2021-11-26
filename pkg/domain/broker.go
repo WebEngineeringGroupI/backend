@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"fmt"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -39,8 +39,7 @@ func (b *Broker) Publish(event Event) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
-	eventType := fmt.Sprintf("%T", event)
-	if subscribers, ok := b.eventSubscriberMap[eventType]; ok {
+	if subscribers, ok := b.eventSubscriberMap[typeOf(event)]; ok {
 		for _, subscriber := range subscribers {
 			go subscriber.HandleEvent(event)
 		}
@@ -48,6 +47,10 @@ func (b *Broker) Publish(event Event) {
 	for _, subscriber := range b.eventSubscriberMap[allEventsID] {
 		go subscriber.HandleEvent(event)
 	}
+}
+
+func typeOf(event Event) string {
+	return reflect.TypeOf(event).String()
 }
 
 //Subscribe subscribes a Subscriber for the specified event types passed as parameter.
@@ -65,7 +68,7 @@ func (b *Broker) Subscribe(subscriber Subscriber, eventsToSubscribe ...Event) {
 	}
 
 	for _, event := range eventsToSubscribe {
-		eventType := fmt.Sprintf("%T", event)
+		eventType := typeOf(event)
 		if b.isSubscriberAlreadySubscribedToEventType(subscriber, eventType) {
 			continue
 		}
@@ -86,8 +89,7 @@ func (b *Broker) Unsubscribe(subscriberToUnsubscribe Subscriber, events ...Event
 	}
 
 	for _, event := range events {
-		eventType := fmt.Sprintf("%T", event)
-		b.unsubscribeForSingleEventType(subscriberToUnsubscribe, eventType)
+		b.unsubscribeForSingleEventType(subscriberToUnsubscribe, typeOf(event))
 	}
 }
 
