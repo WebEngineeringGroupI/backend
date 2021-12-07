@@ -9,6 +9,7 @@ import (
 var (
 	ErrNoURLsSpecified     = errors.New("no URLs specified")
 	ErrTooMuchMultipleURLs = errors.New("too much multiple URLs")
+	ErrValidURLNotFound    = errors.New("valid URL not found")
 )
 
 const maxNumberOfURLsToLoadBalance = 10

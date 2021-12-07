@@ -1,15 +1,9 @@
 package redirect
 
 import (
-	"errors"
-	"fmt"
 	"math/rand"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-)
-
-var (
-	ErrValidURLNotFound = errors.New("valid URL not found")
 )
 
 type LoadBalancerRedirector struct {
@@ -24,7 +18,7 @@ func (r *LoadBalancerRedirector) ReturnAValidOriginalURL(hash string) (string, e
 
 	validURLs := r.filterValidURLs(loadBalancedURLs.LongURLs)
 	if len(validURLs) == 0 {
-		return "", fmt.Errorf("there are no valid URLs to redirect to")
+		return "", url.ErrValidURLNotFound
 	}
 
 	randomIndex := rand.Intn(len(validURLs))

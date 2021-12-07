@@ -1,6 +1,7 @@
 package redirect_test
 
 import (
+	"errors"
 	"math/rand"
 
 	. "github.com/onsi/ginkgo"
@@ -54,17 +55,17 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 			repository.shouldReturnInvalidURLs("https://youtube.com", "https://google.es")
 			longURL, err := multipleURLRedirector.ReturnAValidOriginalURL("someHash")
 
-			Expect(err).To(MatchError("there are no valid URLs to redirect to"))
+			Expect(err).To(MatchError(url.ErrValidURLNotFound))
 			Expect(longURL).To(BeEmpty())
 		})
 	})
 
-	When("the repository does not find a valid URL for the hash", func() {
-		It("returns the error", func() {
-			repository.shouldReturnError(redirect.ErrValidURLNotFound)
+	When("the repository returns an error", func() {
+		It("returns the error from the repository", func() {
+			repository.shouldReturnError(errors.New("unknown error"))
 			longURL, err := multipleURLRedirector.ReturnAValidOriginalURL("someHash")
 
-			Expect(err).To(MatchError(redirect.ErrValidURLNotFound))
+			Expect(err).To(MatchError("unknown error"))
 			Expect(longURL).To(BeEmpty())
 		})
 	})
