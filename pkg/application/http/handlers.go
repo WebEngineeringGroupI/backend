@@ -127,6 +127,26 @@ func (e *HandlerRepository) redirector() http.HandlerFunc {
 	}
 }
 
+func (e *HandlerRepository) loadBalancingRedirector() http.HandlerFunc {
+	redirector := redirect.NewLoadBalancerRedirector(e.config.LoadBalancedURLsRepository)
+
+	return func(writer http.ResponseWriter, request *http.Request) {
+		hash := e.variableExtractor.Extract(request, "hash")
+
+		originalURL, err := redirector.ReturnAValidOriginalURL(hash)
+		if errors.Is(err, url.ErrValidURLNotFound) {
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(writer, request, originalURL, http.StatusTemporaryRedirect)
+	}
+}
+
 func (e *HandlerRepository) notFound() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		http.NotFound(writer, request)

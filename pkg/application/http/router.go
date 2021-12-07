@@ -44,6 +44,7 @@ func registerPaths(router *httprouter.Router, config Config) {
 	router.Handler(http.MethodPost, "/api/v1/loadbalancer", h.loadBalancingURLCreator())
 	router.Handler(http.MethodPost, "/csv", h.csvShortener())
 	router.Handler(http.MethodGet, "/r/:hash", h.redirector())
+	router.Handler(http.MethodGet, "/lb/:hash", h.loadBalancingRedirector())
 	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())
 
 	router.NotFound = h.notFound()

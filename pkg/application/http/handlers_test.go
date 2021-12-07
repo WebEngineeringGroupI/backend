@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"math/rand"
 	gohttp "net/http"
 	"strings"
 
@@ -25,6 +26,7 @@ var _ = Describe("Application / HTTP", func() {
 		metrics                    *FakeMetrics
 	)
 	BeforeEach(func() {
+		rand.Seed(GinkgoRandomSeed())
 		log.Default().SetOutput(GinkgoWriter)
 		inmemoryRepository := inmemory.NewRepository()
 		shortURLRepository = inmemoryRepository
@@ -135,6 +137,66 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doGETRequest("/r/123456")
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusNotFound))
+			})
+		})
+	})
+
+	Context("when it receives an HTTP request for a load-balancing redirection", func() {
+		Context("and the URL is present in the repository", func() {
+			It("responds with a URL redirect", func() {
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+					Hash: "123456",
+					LongURLs: []url.OriginalURL{
+						{URL: "https://google.com", IsValid: true},
+						{URL: "https://youtube.com", IsValid: false},
+					},
+				})
+
+				response := r.doGETRequest("/lb/123456")
+
+				Expect(response).To(HaveHTTPStatus(gohttp.StatusTemporaryRedirect))
+				Expect(response).To(HaveHTTPHeaderWithValue("Location", "https://google.com"))
+			})
+		})
+		Context("and there are multiple valid URLs", func() {
+			It("responds with a different URL each time", func() {
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+					Hash: "123456",
+					LongURLs: []url.OriginalURL{
+						{URL: "https://google.com", IsValid: true},
+						{URL: "https://youtube.com", IsValid: true},
+					},
+				})
+
+				Eventually(func() *gohttp.Response {
+					return r.doGETRequest("/lb/123456")
+				}).Should(HaveHTTPHeaderWithValue("Location", "https://google.com"))
+				Eventually(func() *gohttp.Response {
+					return r.doGETRequest("/lb/123456")
+				}).Should(HaveHTTPHeaderWithValue("Location", "https://youtube.com"))
+			})
+		})
+
+		Context("but the URL does not have any original valid URL", func() {
+			It("returns a 404 error", func() {
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+					Hash: "123456",
+					LongURLs: []url.OriginalURL{
+						{URL: "https://google.com", IsValid: false},
+						{URL: "https://youtube.com", IsValid: false},
+					},
+				})
+
+				response := r.doGETRequest("/lb/123456")
+
+				Expect(response).To(HaveHTTPStatus(gohttp.StatusNotFound))
+			})
+		})
+		Context("but the URL is not present in the repository", func() {
+			It("returns a 404 error", func() {
+				response := r.doGETRequest("/lb/123456")
+
+				Expect(response).To(HaveHTTPStatus(gohttp.StatusNotFound))
 			})
 		})
 	})
