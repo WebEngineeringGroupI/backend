@@ -46,8 +46,8 @@ var _ = Describe("Multiple URL Shortener", func() {
 			Expect(err).To(Succeed())
 			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
-			Expect(shortURLs[0].LongURL).To(Equal("https://google.com"))
-			Expect(shortURLs[1].LongURL).To(Equal("https://unizar.es"))
+			Expect(shortURLs[0].OriginalURL.URL).To(Equal("https://google.com"))
+			Expect(shortURLs[1].OriginalURL.URL).To(Equal("https://unizar.es"))
 		})
 
 		It("generates different short URL hashes for each of the long URLs", func() {
@@ -105,9 +105,9 @@ var _ = Describe("Multiple URL Shortener", func() {
 			Expect(err).To(Succeed())
 
 			Expect(firstURL.Hash).To(Equal(shortURLs[0].Hash))
-			Expect(firstURL.LongURL).To(Equal("https://google.com"))
+			Expect(firstURL.OriginalURL.URL).To(Equal("https://google.com"))
 			Expect(secondURL.Hash).To(Equal(shortURLs[1].Hash))
-			Expect(secondURL.LongURL).To(Equal("https://unizar.es"))
+			Expect(secondURL.OriginalURL.URL).To(Equal("https://unizar.es"))
 		})
 	})
 })

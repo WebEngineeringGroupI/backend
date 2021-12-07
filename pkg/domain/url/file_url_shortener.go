@@ -39,8 +39,11 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 	for _, longURL := range longURLs {
 		s.metrics.RecordUrlsProcessed()
 		shortURL := ShortURL{
-			Hash:    hashFromURL(longURL),
-			LongURL: longURL,
+			Hash: hashFromURL(longURL),
+			OriginalURL: OriginalURL{
+				URL:     longURL,
+				IsValid: true,
+			},
 		}
 
 		err := s.repository.Save(&shortURL)

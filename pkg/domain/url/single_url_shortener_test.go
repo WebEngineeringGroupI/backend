@@ -41,7 +41,7 @@ var _ = Describe("Single URL shortener", func() {
 			shortURL, err := shortener.HashFromURL(aLongURL)
 
 			Expect(err).To(Succeed())
-			Expect(shortURL.LongURL).To(Equal(aLongURL))
+			Expect(shortURL.OriginalURL.URL).To(Equal(aLongURL))
 			Expect(metrics.urlsProcessed).To(Equal(1))
 			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})

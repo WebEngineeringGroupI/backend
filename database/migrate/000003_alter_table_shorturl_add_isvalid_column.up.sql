@@ -1,0 +1,2 @@
+ALTER TABLE shorturl
+    ADD COLUMN is_valid BOOLEAN DEFAULT FALSE;

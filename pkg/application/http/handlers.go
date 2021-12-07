@@ -113,13 +113,13 @@ func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, vali
 		dataOut := csvDataOut{}
 		for _, shortURL := range shortURLs {
 			dataOut = append(dataOut, []string{
-				shortURL.LongURL,
+				shortURL.OriginalURL.URL,
 				fmt.Sprintf("%s/r/%s", e.baseDomain, shortURL.Hash),
 				"",
 			})
 		}
 
-		writer.Header().Set("Location", shortURLs[0].LongURL)
+		writer.Header().Set("Location", shortURLs[0].OriginalURL.URL)
 		writer.Header().Set("Content-type", "text/csv")
 		writer.WriteHeader(http.StatusCreated)
 		err = csv.NewWriter(writer).WriteAll(dataOut)

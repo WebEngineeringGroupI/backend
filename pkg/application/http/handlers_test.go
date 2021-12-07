@@ -44,7 +44,7 @@ var _ = Describe("Application / HTTP", func() {
 			shortURL, err := shortURLRepository.FindByHash("lxqrJ9xF")
 
 			Expect(err).To(Succeed())
-			Expect(shortURL.LongURL).To(Equal("https://google.es"))
+			Expect(shortURL.OriginalURL.URL).To(Equal("https://google.es"))
 		})
 
 		Context("but the JSON is malformed", func() {
@@ -76,8 +76,8 @@ var _ = Describe("Application / HTTP", func() {
 		Context("and the URL is present in the repository", func() {
 			It("responds with a URL redirect", func() {
 				_ = shortURLRepository.Save(&url.ShortURL{
-					Hash:    "123456",
-					LongURL: "https://google.com",
+					Hash:        "123456",
+					OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 				})
 
 				response := r.doGETRequest("/r/123456")
@@ -109,8 +109,8 @@ var _ = Describe("Application / HTTP", func() {
 			secondURL, err := shortURLRepository.FindByHash("1+IiyNe6")
 			Expect(err).To(Succeed())
 
-			Expect(firstURL.LongURL).To(Equal("google.com"))
-			Expect(secondURL.LongURL).To(Equal("youtube.com"))
+			Expect(firstURL.OriginalURL.URL).To(Equal("google.com"))
+			Expect(secondURL.OriginalURL.URL).To(Equal("youtube.com"))
 		})
 
 		Context("but the CSV is empty", func() {

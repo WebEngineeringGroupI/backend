@@ -27,8 +27,8 @@ var _ = Describe("Redirect", func() {
 	Context("when providing a hash", func() {
 		It("returns a HTTP URL", func() {
 			shortURL := &url.ShortURL{
-				Hash:    "asdfasdf",
-				LongURL: "http://google.com",
+				Hash:        "asdfasdf",
+				OriginalURL: url.OriginalURL{URL: "http://google.com", IsValid: true},
 			}
 			err := repository.Save(shortURL)
 			Expect(err).To(Succeed())
@@ -40,8 +40,8 @@ var _ = Describe("Redirect", func() {
 
 		It("returns a HTTPS URL", func() {
 			shortURL := &url.ShortURL{
-				Hash:    "asdfasdf",
-				LongURL: "https://google.com",
+				Hash:        "asdfasdf",
+				OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 			}
 
 			err := repository.Save(shortURL)
@@ -56,8 +56,8 @@ var _ = Describe("Redirect", func() {
 	Context("when providing a hash", func() {
 		It("returns the same URL that generated the hash", func() {
 			shortURL := &url.ShortURL{
-				Hash:    "asdfasdf",
-				LongURL: "https://google.com",
+				Hash:        "asdfasdf",
+				OriginalURL: url.OriginalURL{URL: "http://google.com", IsValid: true},
 			}
 
 			err := repository.Save(shortURL)
@@ -65,7 +65,7 @@ var _ = Describe("Redirect", func() {
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
 			Expect(err).To(Succeed())
-			Expect(originalURL).To(Equal(shortURL.LongURL))
+			Expect(originalURL).To(Equal(shortURL.OriginalURL.URL))
 		})
 	})
 
@@ -73,8 +73,8 @@ var _ = Describe("Redirect", func() {
 		Context("if the URL is not valid", func() {
 			It("returns an error saying it's not valid", func() {
 				shortURL := &url.ShortURL{
-					Hash:    "12345",
-					LongURL: "some-url",
+					Hash:        "12345",
+					OriginalURL: url.OriginalURL{URL: "some-url", IsValid: true},
 				}
 				_ = repository.Save(shortURL)
 				validator.shouldReturnValidURL(false)
@@ -88,8 +88,8 @@ var _ = Describe("Redirect", func() {
 		Context("if the validator is not able to validate the URL", func() {
 			It("returns the error saying it's not able to validate it", func() {
 				shortURL := &url.ShortURL{
-					Hash:    "12345",
-					LongURL: "some-url",
+					Hash:        "12345",
+					OriginalURL: url.OriginalURL{URL: "some-url", IsValid: true},
 				}
 				_ = repository.Save(shortURL)
 				validator.shouldReturnError(errors.New("unknown validation error"))

@@ -22,15 +22,15 @@ func (r *Redirector) ReturnOriginalURL(hash string) (string, error) {
 		return "", fmt.Errorf("unexpected error retrieving original URL: %w", err)
 	}
 
-	isValidURL, err := r.validator.ValidateURLs([]string{shortURL.LongURL})
+	isValidURL, err := r.validator.ValidateURLs([]string{shortURL.OriginalURL.URL})
 	if err != nil {
 		return "", err
 	}
 	if !isValidURL {
-		return "", fmt.Errorf("the url '%s' is marked as invalid", shortURL.LongURL)
+		return "", fmt.Errorf("the url '%s' is marked as invalid", shortURL.OriginalURL.URL)
 	}
 
-	return shortURL.LongURL, nil
+	return shortURL.OriginalURL.URL, nil
 }
 
 func NewRedirector(repository url.ShortURLRepository, validator url.Validator) *Redirector {

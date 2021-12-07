@@ -7,6 +7,7 @@ import (
 type Shorturl struct {
 	Hash      string    `xorm:"'hash'"`
 	LongURL   string    `xorm:"'long_url'"`
+	IsValid   bool      `xorm:"'is_valid'"`
 	CreatedAt time.Time `xorm:"created"`
 	UpdatedAt time.Time `xorm:"updated"`
 }

@@ -13,9 +13,14 @@ type SingleURLShortener struct {
 	metrics    Metrics
 }
 
+type OriginalURL struct {
+	URL     string
+	IsValid bool
+}
+
 type ShortURL struct {
-	Hash    string
-	LongURL string
+	Hash        string
+	OriginalURL OriginalURL
 }
 
 var (
@@ -34,8 +39,11 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 	}
 
 	shortURL := &ShortURL{
-		Hash:    hashFromURL(aLongURL),
-		LongURL: aLongURL,
+		Hash: hashFromURL(aLongURL),
+		OriginalURL: OriginalURL{
+			URL:     aLongURL,
+			IsValid: true,
+		},
 	}
 
 	err = s.repository.Save(shortURL) // FIXME(fede): test this error

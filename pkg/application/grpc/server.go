@@ -45,7 +45,7 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 		err = shortURLsServer.Send(&genproto.ShortURLsResponse{
 			Result: &genproto.ShortURLsResponse_Success_{
 				Success: &genproto.ShortURLsResponse_Success{
-					LongUrl:  shortURL.LongURL,
+					LongUrl:  shortURL.OriginalURL.URL,
 					ShortUrl: fmt.Sprintf("%s/r/%s", s.baseDomain, shortURL.Hash),
 				},
 			},

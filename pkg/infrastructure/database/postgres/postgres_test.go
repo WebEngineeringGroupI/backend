@@ -18,8 +18,8 @@ var _ = Describe("Postgres", func() {
 
 	BeforeEach(func() {
 		aShortURL = &url.ShortURL{
-			Hash:    "12345678",
-			LongURL: "https://google.com",
+			Hash:        "12345678",
+			OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 		}
 
 		var err error
@@ -43,7 +43,7 @@ var _ = Describe("Postgres", func() {
 
 		Expect(err).To(Succeed())
 		Expect(retrievedShortURL.Hash).To(Equal(aShortURL.Hash))
-		Expect(retrievedShortURL.LongURL).To(Equal(aShortURL.LongURL))
+		Expect(retrievedShortURL.OriginalURL).To(Equal(aShortURL.OriginalURL))
 	})
 
 	Context("when the short URL already exists in the database", func() {

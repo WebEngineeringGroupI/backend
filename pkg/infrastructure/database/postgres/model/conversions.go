@@ -8,14 +8,18 @@ import (
 func ShortURLFromDomain(url *url.ShortURL) Shorturl {
 	return Shorturl{
 		Hash:    url.Hash,
-		LongURL: url.LongURL,
+		LongURL: url.OriginalURL.URL,
+		IsValid: url.OriginalURL.IsValid,
 	}
 }
 
 func ShortURLToDomain(shortURL Shorturl) *url.ShortURL {
 	return &url.ShortURL{
-		Hash:    shortURL.Hash,
-		LongURL: shortURL.LongURL,
+		Hash: shortURL.Hash,
+		OriginalURL: url.OriginalURL{
+			URL:     shortURL.LongURL,
+			IsValid: shortURL.IsValid,
+		},
 	}
 }
 

@@ -1,5 +1,9 @@
 package url_test
 
+import (
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+)
+
 type FakeURLValidator struct {
 	returnValidURL bool
 	returnError    error
@@ -54,4 +58,22 @@ func (f *FakeMetrics) RecordFileURLMetrics() {
 
 func (f *FakeMetrics) RecordUrlsProcessed() {
 	f.urlsProcessed++
+}
+
+type FakeMultipleShortURLsRepository struct {
+	urls          []*url.MultipleShortURLs
+	errorToReturn error
+}
+
+func (f *FakeMultipleShortURLsRepository) shouldReturnError(err error) {
+	f.errorToReturn = err
+}
+
+func (f *FakeMultipleShortURLsRepository) Save(urls *url.MultipleShortURLs) error {
+	if f.errorToReturn != nil {
+		return f.errorToReturn
+	}
+
+	f.urls = append(f.urls, urls)
+	return nil
 }
