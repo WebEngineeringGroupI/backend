@@ -15,7 +15,7 @@ import (
 )
 
 type HandlerRepository struct {
-	baseDomain        string
+	config            Config
 	variableExtractor VariableExtractor
 }
 
@@ -23,8 +23,8 @@ type VariableExtractor interface {
 	Extract(request *http.Request, key string) string
 }
 
-func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validator url.Validator, metrics url.Metrics) http.HandlerFunc {
-	urlShortener := url.NewSingleURLShortener(repository, validator, metrics)
+func (e *HandlerRepository) shortener() http.HandlerFunc {
+	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, e.config.URLValidator, e.config.CustomMetrics)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn
@@ -56,7 +56,7 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 		}
 
 		dataOut := shortURLDataOut{
-			URL: fmt.Sprintf("%s/r/%s", e.baseDomain, shortURL.Hash),
+			URL: fmt.Sprintf("%s/r/%s", e.baseDomain(), shortURL.Hash),
 		}
 		err = json.NewEncoder(writer).Encode(&dataOut)
 		if err != nil {
@@ -67,8 +67,8 @@ func (e *HandlerRepository) shortener(repository url.ShortURLRepository, validat
 	}
 }
 
-func (e *HandlerRepository) redirector(repository url.ShortURLRepository, validator url.Validator) http.HandlerFunc {
-	redirector := redirect.NewRedirector(repository, validator)
+func (e *HandlerRepository) redirector() http.HandlerFunc {
+	redirector := redirect.NewRedirector(e.config.ShortURLRepository, e.config.URLValidator)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		shortURLHash := e.variableExtractor.Extract(request, "hash")
@@ -93,8 +93,8 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 	}
 }
 
-func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, validator url.Validator, metrics url.Metrics) http.HandlerFunc {
-	csvShortener := url.NewFileURLShortener(repository, validator, metrics, formatter.NewCSV())
+func (e *HandlerRepository) csvShortener() http.HandlerFunc {
+	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.URLValidator, e.config.CustomMetrics, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		data := []byte(request.FormValue("file"))
@@ -114,7 +114,7 @@ func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, vali
 		for _, shortURL := range shortURLs {
 			dataOut = append(dataOut, []string{
 				shortURL.OriginalURL.URL,
-				fmt.Sprintf("%s/r/%s", e.baseDomain, shortURL.Hash),
+				fmt.Sprintf("%s/r/%s", e.baseDomain(), shortURL.Hash),
 				"",
 			})
 		}
@@ -131,9 +131,13 @@ func (e *HandlerRepository) csvShortener(repository url.ShortURLRepository, vali
 	}
 }
 
-func NewHandlerRepository(baseDomain string, variableExtractor VariableExtractor) *HandlerRepository {
+func (e *HandlerRepository) baseDomain() string {
+	return strings.TrimSuffix(e.config.BaseDomain, "/")
+}
+
+func NewHandlerRepository(config Config, variableExtractor VariableExtractor) *HandlerRepository {
 	return &HandlerRepository{
-		baseDomain:        strings.TrimSuffix(baseDomain, "/"),
+		config:            config,
 		variableExtractor: variableExtractor,
 	}
 }

@@ -37,11 +37,11 @@ func httprouterVariableExtractor() variableExtractorFunc {
 }
 
 func registerPaths(router *httprouter.Router, config Config) {
-	h := NewHandlerRepository(config.BaseDomain, httprouterVariableExtractor())
+	h := NewHandlerRepository(config, httprouterVariableExtractor())
 
-	router.Handler(http.MethodPost, "/api/v1/link", h.shortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics))
-	router.Handler(http.MethodPost, "/csv", h.csvShortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics))
-	router.Handler(http.MethodGet, "/r/:hash", h.redirector(config.ShortURLRepository, config.URLValidator))
+	router.Handler(http.MethodPost, "/api/v1/link", h.shortener())
+	router.Handler(http.MethodPost, "/csv", h.csvShortener())
+	router.Handler(http.MethodGet, "/r/:hash", h.redirector())
 	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())
 
 	router.NotFound = h.notFound()
