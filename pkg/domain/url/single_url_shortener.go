@@ -29,7 +29,6 @@ var (
 
 // FIXME(fede): Rename to something like ShortURLFromLong
 func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
-	s.metrics.RecordSingleURLMetrics()
 	isValidURL, err := s.validator.ValidateURLs([]string{aLongURL})
 	if err != nil {
 		return nil, err
@@ -51,6 +50,7 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
+	s.metrics.RecordSingleURLMetrics()
 	s.metrics.RecordUrlsProcessed()
 
 	return shortURL, nil
