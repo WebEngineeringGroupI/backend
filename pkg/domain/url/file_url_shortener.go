@@ -46,7 +46,7 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 			},
 		}
 
-		err := s.repository.Save(&shortURL)
+		err := s.repository.SaveShortURL(&shortURL)
 		if err != nil {
 			return nil, fmt.Errorf("unable to save URL '%s' to repository: %w", longURL, err)
 		}

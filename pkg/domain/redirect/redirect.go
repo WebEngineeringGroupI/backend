@@ -13,8 +13,7 @@ type Redirector struct {
 }
 
 func (r *Redirector) ReturnOriginalURL(hash string) (string, error) {
-	// FindByHash
-	shortURL, err := r.repository.FindByHash(hash)
+	shortURL, err := r.repository.FindShortURLByHash(hash)
 	if errors.Is(err, url.ErrShortURLNotFound) {
 		return "", err
 	}

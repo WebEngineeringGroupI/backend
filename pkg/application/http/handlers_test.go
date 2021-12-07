@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	gohttp "net/http"
 	"strings"
 
@@ -17,31 +18,36 @@ import (
 
 var _ = Describe("Application / HTTP", func() {
 	var (
-		r                  *testingRouter
-		shortURLRepository url.ShortURLRepository
-		validator          *FakeURLValidator
-		metrics            *FakeMetrics
+		r                          *testingRouter
+		shortURLRepository         url.ShortURLRepository
+		loadBalancerURLsRepository url.LoadBalancedURLsRepository
+		validator                  *FakeURLValidator
+		metrics                    *FakeMetrics
 	)
 	BeforeEach(func() {
-		shortURLRepository = inmemory.NewRepository()
+		log.Default().SetOutput(GinkgoWriter)
+		inmemoryRepository := inmemory.NewRepository()
+		shortURLRepository = inmemoryRepository
+		loadBalancerURLsRepository = inmemoryRepository
 		validator = &FakeURLValidator{returnValidURL: true}
 		metrics = &FakeMetrics{}
 		r = newTestingRouter(http.Config{
-			BaseDomain:         "http://example.com",
-			ShortURLRepository: shortURLRepository,
-			URLValidator:       validator,
-			CustomMetrics:      metrics,
+			BaseDomain:                 "http://example.com",
+			ShortURLRepository:         shortURLRepository,
+			LoadBalancedURLsRepository: loadBalancerURLsRepository,
+			URLValidator:               validator,
+			CustomMetrics:              metrics,
 		})
 	})
 
-	Context("when it retrieves an HTTP request for a short URL", func() {
+	Context("when it receives an HTTP request for a short URL", func() {
 		It("returns the short URL", func() {
 			response := r.doPOSTRequest("/api/v1/link", longURLRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
 			Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
 
-			shortURL, err := shortURLRepository.FindByHash("lxqrJ9xF")
+			shortURL, err := shortURLRepository.FindShortURLByHash("lxqrJ9xF")
 
 			Expect(err).To(Succeed())
 			Expect(shortURL.OriginalURL.URL).To(Equal("https://google.es"))
@@ -72,10 +78,26 @@ var _ = Describe("Application / HTTP", func() {
 		})
 	})
 
-	Context("when it retrieves an HTTP request for a redirection", func() {
+	Context("when it receives an HTTP request for a load-balancing URL creation", func() {
+		It("returns the load balanced URL", func() {
+			response := r.doPOSTRequest("/api/v1/loadbalancer", loadBalancerURLRequest())
+
+			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
+			Expect(readAll(response.Body)).To(MatchJSON(loadBalancerURLResponse()))
+
+			loadBalancedURL, err := loadBalancerURLsRepository.FindLoadBalancedURLByHash("5XEOqhb0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(loadBalancedURL.LongURLs).To(ConsistOf(
+				url.OriginalURL{URL: "https://google.es"},
+				url.OriginalURL{URL: "https://youtube.com"},
+			))
+		})
+	})
+
+	Context("when it receives an HTTP request for a redirection", func() {
 		Context("and the URL is present in the repository", func() {
 			It("responds with a URL redirect", func() {
-				_ = shortURLRepository.Save(&url.ShortURL{
+				_ = shortURLRepository.SaveShortURL(&url.ShortURL{
 					Hash:        "123456",
 					OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 				})
@@ -95,7 +117,7 @@ var _ = Describe("Application / HTTP", func() {
 		})
 	})
 
-	Context("when it retrieves an HTTP request to shorten a CSV file", func() {
+	Context("when it receives an HTTP request to shorten a CSV file", func() {
 		It("returns a CSV with the URLs shortened", func() {
 			response := r.doPOSTFormRequest("/csv", csvFileRequest())
 
@@ -104,9 +126,9 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response.Header.Get("Location")).To(Equal("google.com"))
 			Expect(readAll(response.Body)).To(Equal(csvFileResponse()))
 
-			firstURL, err := shortURLRepository.FindByHash("uuqVS5Vz")
+			firstURL, err := shortURLRepository.FindShortURLByHash("uuqVS5Vz")
 			Expect(err).To(Succeed())
-			secondURL, err := shortURLRepository.FindByHash("1+IiyNe6")
+			secondURL, err := shortURLRepository.FindShortURLByHash("1+IiyNe6")
 			Expect(err).To(Succeed())
 
 			Expect(firstURL.OriginalURL.URL).To(Equal("google.com"))
@@ -178,6 +200,18 @@ func longURLRequest() io.Reader {
 	return strings.NewReader(`{
 	"url": "https://google.es"
 }`)
+}
+
+func loadBalancerURLRequest() io.Reader {
+	return strings.NewReader(`{
+	"urls": ["https://google.es", "https://youtube.com"]
+}`)
+}
+
+func loadBalancerURLResponse() string {
+	return `{
+	"url": "http://example.com/lb/5XEOqhb0"
+}`
 }
 
 func longURLResponse() string {

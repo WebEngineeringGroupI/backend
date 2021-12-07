@@ -11,10 +11,11 @@ import (
 )
 
 type Config struct {
-	BaseDomain         string
-	ShortURLRepository url.ShortURLRepository
-	URLValidator       url.Validator
-	CustomMetrics      url.Metrics
+	BaseDomain                 string
+	ShortURLRepository         url.ShortURLRepository
+	URLValidator               url.Validator
+	CustomMetrics              url.Metrics
+	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
 }
 
 func NewRouter(config Config) http.Handler {
@@ -40,6 +41,7 @@ func registerPaths(router *httprouter.Router, config Config) {
 	h := NewHandlerRepository(config, httprouterVariableExtractor())
 
 	router.Handler(http.MethodPost, "/api/v1/link", h.shortener())
+	router.Handler(http.MethodPost, "/api/v1/loadbalancer", h.loadBalancingURLCreator())
 	router.Handler(http.MethodPost, "/csv", h.csvShortener())
 	router.Handler(http.MethodGet, "/r/:hash", h.redirector())
 	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())

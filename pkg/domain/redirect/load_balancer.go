@@ -11,7 +11,7 @@ type LoadBalancerRedirector struct {
 }
 
 func (r *LoadBalancerRedirector) ReturnAValidOriginalURL(hash string) (string, error) {
-	loadBalancedURLs, err := r.repository.FindByHash(hash)
+	loadBalancedURLs, err := r.repository.FindLoadBalancedURLByHash(hash)
 	if err != nil {
 		return "", err
 	}

@@ -29,7 +29,7 @@ var (
 	errDuplicateConstraintViolation pq.ErrorCode = "23505"
 )
 
-func (d *DB) Save(url *url.ShortURL) error {
+func (d *DB) SaveShortURL(url *url.ShortURL) error {
 	shortURL := model.ShortURLFromDomain(url)
 	_, err := d.engine.Insert(&shortURL)
 
@@ -45,7 +45,7 @@ func (d *DB) Save(url *url.ShortURL) error {
 	return nil
 }
 
-func (d *DB) FindByHash(hash string) (*url.ShortURL, error) {
+func (d *DB) FindShortURLByHash(hash string) (*url.ShortURL, error) {
 	shortURL := model.Shorturl{Hash: hash}
 	exists, err := d.engine.Get(&shortURL)
 	if !exists {

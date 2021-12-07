@@ -46,7 +46,7 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		},
 	}
 
-	err = s.repository.Save(shortURL) // FIXME(fede): test this error
+	err = s.repository.SaveShortURL(shortURL) // FIXME(fede): test this error
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}

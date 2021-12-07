@@ -99,9 +99,9 @@ var _ = Describe("Multiple URL Shortener", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 			Expect(err).To(Succeed())
 
-			firstURL, err := repository.FindByHash(shortURLs[0].Hash)
+			firstURL, err := repository.FindShortURLByHash(shortURLs[0].Hash)
 			Expect(err).To(Succeed())
-			secondURL, err := repository.FindByHash(shortURLs[1].Hash)
+			secondURL, err := repository.FindShortURLByHash(shortURLs[1].Hash)
 			Expect(err).To(Succeed())
 
 			Expect(firstURL.Hash).To(Equal(shortURLs[0].Hash))

@@ -36,10 +36,10 @@ var _ = Describe("Postgres", func() {
 	})
 
 	It("saves the short URL in the database and retrieves it again", func() {
-		err := repository.Save(aShortURL)
+		err := repository.SaveShortURL(aShortURL)
 		Expect(err).To(Succeed())
 
-		retrievedShortURL, err := repository.FindByHash("12345678")
+		retrievedShortURL, err := repository.FindShortURLByHash("12345678")
 
 		Expect(err).To(Succeed())
 		Expect(retrievedShortURL.Hash).To(Equal(aShortURL.Hash))
@@ -48,17 +48,17 @@ var _ = Describe("Postgres", func() {
 
 	Context("when the short URL already exists in the database", func() {
 		It("doesn't return an error", func() {
-			err := repository.Save(aShortURL)
+			err := repository.SaveShortURL(aShortURL)
 			Expect(err).To(Succeed())
 
-			err = repository.Save(aShortURL)
+			err = repository.SaveShortURL(aShortURL)
 			Expect(err).To(Succeed())
 		})
 	})
 
 	Context("when the short URL doesn't exist in the database", func() {
 		It("returns an error saying not found", func() {
-			retrievedShortURL, err := repository.FindByHash("non_existing_hash")
+			retrievedShortURL, err := repository.FindShortURLByHash("non_existing_hash")
 
 			Expect(err).To(MatchError(url.ErrShortURLNotFound))
 			Expect(retrievedShortURL).To(BeNil())

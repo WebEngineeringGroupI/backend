@@ -67,6 +67,46 @@ func (e *HandlerRepository) shortener() http.HandlerFunc {
 	}
 }
 
+func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
+	loadBalancerCreator := url.NewLoadBalancer(e.config.LoadBalancedURLsRepository)
+
+	return func(writer http.ResponseWriter, request *http.Request) {
+		var dataIn loadBalancerURLDataIn
+		err := json.NewDecoder(request.Body).Decode(&dataIn)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		shortURL, err := loadBalancerCreator.ShortURLs(dataIn.URLs)
+		if errors.Is(err, url.ErrNoURLsSpecified) {
+			log.Print(err.Error())
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, url.ErrTooMuchMultipleURLs) {
+			log.Print(err.Error())
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			http.Error(writer, "internal server error", http.StatusInternalServerError)
+			log.Printf("error retrieving hash from long URL: %s", err)
+			return
+		}
+
+		dataOut := loadBalancerURLDataOut{
+			URL: fmt.Sprintf("%s/lb/%s", e.baseDomain(), shortURL.Hash),
+		}
+		err = json.NewEncoder(writer).Encode(&dataOut)
+		if err != nil {
+			writer.WriteHeader(http.StatusInternalServerError)
+			log.Printf("error marshaling the response: %s", err)
+			return
+		}
+	}
+}
+
 func (e *HandlerRepository) redirector() http.HandlerFunc {
 	redirector := redirect.NewRedirector(e.config.ShortURLRepository, e.config.URLValidator)
 

@@ -30,7 +30,7 @@ var _ = Describe("Redirect", func() {
 				Hash:        "asdfasdf",
 				OriginalURL: url.OriginalURL{URL: "http://google.com", IsValid: true},
 			}
-			err := repository.Save(shortURL)
+			err := repository.SaveShortURL(shortURL)
 			Expect(err).To(Succeed())
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
@@ -44,7 +44,7 @@ var _ = Describe("Redirect", func() {
 				OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 			}
 
-			err := repository.Save(shortURL)
+			err := repository.SaveShortURL(shortURL)
 			Expect(err).To(Succeed())
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
@@ -60,7 +60,7 @@ var _ = Describe("Redirect", func() {
 				OriginalURL: url.OriginalURL{URL: "http://google.com", IsValid: true},
 			}
 
-			err := repository.Save(shortURL)
+			err := repository.SaveShortURL(shortURL)
 			Expect(err).To(Succeed())
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
@@ -76,7 +76,7 @@ var _ = Describe("Redirect", func() {
 					Hash:        "12345",
 					OriginalURL: url.OriginalURL{URL: "some-url", IsValid: true},
 				}
-				_ = repository.Save(shortURL)
+				_ = repository.SaveShortURL(shortURL)
 				validator.shouldReturnValidURL(false)
 
 				originalURL, err := redirector.ReturnOriginalURL("12345")
@@ -91,7 +91,7 @@ var _ = Describe("Redirect", func() {
 					Hash:        "12345",
 					OriginalURL: url.OriginalURL{URL: "some-url", IsValid: true},
 				}
-				_ = repository.Save(shortURL)
+				_ = repository.SaveShortURL(shortURL)
 				validator.shouldReturnError(errors.New("unknown validation error"))
 
 				originalURL, err := redirector.ReturnOriginalURL("12345")

@@ -12,6 +12,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
@@ -21,9 +22,10 @@ import (
 )
 
 type factory struct {
-	shortURLRepositorySingleton url.ShortURLRepository
-	urlValidatorSingleton       url.Validator
-	metricsSingleton            url.Metrics
+	shortURLRepositorySingleton         url.ShortURLRepository
+	urlValidatorSingleton               url.Validator
+	metricsSingleton                    url.Metrics
+	loadBalancedURLsRepositorySingleton url.LoadBalancedURLsRepository
 }
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
@@ -36,10 +38,11 @@ func (f *factory) NewGRPCServer() *gogrpc.Server {
 
 func (f *factory) httpConfig() http.Config {
 	return http.Config{
-		BaseDomain:         f.baseDomain(),
-		ShortURLRepository: f.shortURLRepository(),
-		URLValidator:       f.urlValidator(),
-		CustomMetrics:      f.customMetrics(),
+		BaseDomain:                 f.baseDomain(),
+		ShortURLRepository:         f.shortURLRepository(),
+		URLValidator:               f.urlValidator(),
+		CustomMetrics:              f.customMetrics(),
+		LoadBalancedURLsRepository: f.loadBalancedURLsRepository(),
 	}
 }
 
@@ -113,6 +116,13 @@ func (f *factory) urlValidator() url.Validator {
 		f.urlValidatorSingleton = pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 	}
 	return f.urlValidatorSingleton
+}
+
+func (f *factory) loadBalancedURLsRepository() url.LoadBalancedURLsRepository {
+	if f.loadBalancedURLsRepositorySingleton == nil {
+		f.loadBalancedURLsRepositorySingleton = inmemory.NewRepository()
+	}
+	return f.loadBalancedURLsRepositorySingleton
 }
 
 func newFactory() *factory {

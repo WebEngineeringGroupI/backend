@@ -15,8 +15,8 @@ var (
 const maxNumberOfURLsToLoadBalance = 10
 
 type LoadBalancedURLsRepository interface {
-	FindByHash(hash string) (*LoadBalancedURL, error)
-	Save(urls *LoadBalancedURL) error
+	FindLoadBalancedURLByHash(hash string) (*LoadBalancedURL, error)
+	SaveLoadBalancedURL(urls *LoadBalancedURL) error
 }
 
 type LoadBalancer struct {
@@ -41,7 +41,7 @@ func (b *LoadBalancer) ShortURLs(urls []string) (*LoadBalancedURL, error) {
 		LongURLs: originalURLsFromRaw(urls),
 	}
 
-	err := b.repository.Save(multipleShortURLs)
+	err := b.repository.SaveLoadBalancedURL(multipleShortURLs)
 	if err != nil {
 		return nil, fmt.Errorf("error saving load-balanced URLs into repository: %w", err)
 	}

@@ -90,7 +90,7 @@ var _ = Describe("Single URL shortener", func() {
 			shortURL, err := shortener.HashFromURL("https://unizar.es")
 			Expect(err).To(Succeed())
 
-			expectedURLInRepo, err := repository.FindByHash(shortURL.Hash)
+			expectedURLInRepo, err := repository.FindShortURLByHash(shortURL.Hash)
 			Expect(err).To(Succeed())
 			Expect(expectedURLInRepo.Hash).To(Equal(shortURL.Hash))
 		})

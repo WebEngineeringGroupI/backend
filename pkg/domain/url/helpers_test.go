@@ -69,7 +69,7 @@ func (f *FakeLoadBalancedURLsRepository) shouldReturnError(err error) {
 	f.errorToReturn = err
 }
 
-func (f *FakeLoadBalancedURLsRepository) Save(urls *url.LoadBalancedURL) error {
+func (f *FakeLoadBalancedURLsRepository) SaveLoadBalancedURL(urls *url.LoadBalancedURL) error {
 	if f.errorToReturn != nil {
 		return f.errorToReturn
 	}
@@ -78,6 +78,6 @@ func (f *FakeLoadBalancedURLsRepository) Save(urls *url.LoadBalancedURL) error {
 	return nil
 }
 
-func (f *FakeLoadBalancedURLsRepository) FindByHash(hash string) (*url.LoadBalancedURL, error) {
+func (f *FakeLoadBalancedURLsRepository) FindLoadBalancedURLByHash(hash string) (*url.LoadBalancedURL, error) {
 	panic("implement me")
 }
