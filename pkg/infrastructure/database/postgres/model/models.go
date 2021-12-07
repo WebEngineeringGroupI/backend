@@ -18,3 +18,16 @@ type Clickdetails struct {
 	CreatedAt time.Time `xorm:"created"`
 	UpdatedAt time.Time `xorm:"updated"`
 }
+
+//revive:disable:var-naming
+type LoadBalancedUrlList []LoadBalancedUrl
+
+type LoadBalancedUrl struct {
+	Hash        string    `xorm:"'hash'"`
+	OriginalURL string    `xorm:"'original_url'"`
+	IsValid     bool      `xorm:"'is_valid'"`
+	CreatedAt   time.Time `xorm:"created"`
+	UpdatedAt   time.Time `xorm:"updated"`
+}
+
+//revive:enable:var-naming

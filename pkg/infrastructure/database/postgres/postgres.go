@@ -25,6 +25,36 @@ type DB struct {
 	engine *xorm.Engine
 }
 
+func (d *DB) FindLoadBalancedURLByHash(hash string) (*url.LoadBalancedURL, error) {
+	var result model.LoadBalancedUrlList
+	err := d.engine.Find(&result, &model.LoadBalancedUrl{Hash: hash})
+	if len(result) == 0 {
+		return nil, url.ErrValidURLNotFound // FIXME(fede): Should we use another kind of error here?
+	}
+	if err != nil {
+		return nil, fmt.Errorf("unknown error retrieving short url: %w", err)
+	}
+
+	return model.LoadBalancedURLToDomain(result), nil
+}
+
+func (d *DB) SaveLoadBalancedURL(aURL *url.LoadBalancedURL) error {
+	dbURL := model.LoadBalancedURLFromDomain(aURL)
+	_, err := d.engine.Insert(&dbURL)
+
+	var pqError *pq.Error
+	if errors.As(err, &pqError) {
+		if pqError.Code == errDuplicateConstraintViolation {
+			return nil
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("unable to save load-balanced URL: %w", err)
+	}
+	return nil
+}
+
 var (
 	errDuplicateConstraintViolation pq.ErrorCode = "23505"
 )

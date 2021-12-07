@@ -49,7 +49,7 @@ var _ = Describe("Application / HTTP", func() {
 
 			shortURL, err := shortURLRepository.FindShortURLByHash("lxqrJ9xF")
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.OriginalURL.URL).To(Equal("https://google.es"))
 		})
 
@@ -149,9 +149,9 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response).To(HaveHTTPBody(Equal(csvFileResponse())))
 
 			firstURL, err := shortURLRepository.FindShortURLByHash("uuqVS5Vz")
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			secondURL, err := shortURLRepository.FindShortURLByHash("1+IiyNe6")
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(firstURL.OriginalURL.URL).To(Equal("google.com"))
 			Expect(secondURL.OriginalURL.URL).To(Equal("youtube.com"))

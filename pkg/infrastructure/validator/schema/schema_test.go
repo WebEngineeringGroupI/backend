@@ -16,21 +16,21 @@ var _ = Describe("Schema Validator", func() {
 		validator := schema.NewValidator("http", "https")
 		isValid, err := validator.ValidateURLs([]string{"http://google.com"})
 
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeTrue())
 	})
 	It("validates a URL that contains the https schema", func() {
 		validator := schema.NewValidator("http", "https")
 		isValid, err := validator.ValidateURLs([]string{"https://google.com"})
 
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeTrue())
 	})
 	It("fails to validate a URL that contains the ftp schema", func() {
 		validator := schema.NewValidator("http", "https")
 		isValid, err := validator.ValidateURLs([]string{"ftp://google.com"})
 
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeFalse())
 	})
 	It("validates a random schema", func() {
@@ -38,7 +38,7 @@ var _ = Describe("Schema Validator", func() {
 		validator := schema.NewValidator(randomSchema)
 		isValid, err := validator.ValidateURLs([]string{fmt.Sprintf("%s://google.com", randomSchema)})
 
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeTrue())
 	})
 

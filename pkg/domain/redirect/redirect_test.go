@@ -31,10 +31,10 @@ var _ = Describe("Redirect", func() {
 				OriginalURL: url.OriginalURL{URL: "http://google.com", IsValid: true},
 			}
 			err := repository.SaveShortURL(shortURL)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(originalURL).To(Equal("http://google.com"))
 		})
 
@@ -45,10 +45,10 @@ var _ = Describe("Redirect", func() {
 			}
 
 			err := repository.SaveShortURL(shortURL)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(originalURL).To(Equal("https://google.com"))
 		})
 	})
@@ -61,10 +61,10 @@ var _ = Describe("Redirect", func() {
 			}
 
 			err := repository.SaveShortURL(shortURL)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 
 			originalURL, err := redirector.ReturnOriginalURL(shortURL.Hash)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(originalURL).To(Equal(shortURL.OriginalURL.URL))
 		})
 	})

@@ -1,2 +1,2 @@
 ALTER TABLE shorturl
-    DROP COLUMN is_valid;
+    DROP COLUMN IF EXISTS is_valid;
