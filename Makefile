@@ -30,5 +30,5 @@ test-unit: deps
 test-integration: run-db deps
 	sleep 10 # Give some time to DB to be launched
 	$(MAKE) migrate-db
-	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover ./pkg/infrastructure
+	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -p ./pkg/infrastructure
 	$(MAKE) kill-db

@@ -30,7 +30,7 @@ var _ = Describe("Single URL shortener", func() {
 			aLongURL := "https://google.com"
 			shortURL, err := shortener.HashFromURL(aLongURL)
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.Hash).To(HaveLen(8))
 			Expect(metrics.urlsProcessed).To(Equal(1))
 			Expect(metrics.singleURLMetrics).To(Equal(1))
@@ -40,8 +40,8 @@ var _ = Describe("Single URL shortener", func() {
 			aLongURL := "https://google.com"
 			shortURL, err := shortener.HashFromURL(aLongURL)
 
-			Expect(err).To(Succeed())
-			Expect(shortURL.LongURL).To(Equal(aLongURL))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(shortURL.OriginalURL.URL).To(Equal(aLongURL))
 			Expect(metrics.urlsProcessed).To(Equal(1))
 			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})
@@ -75,10 +75,10 @@ var _ = Describe("Single URL shortener", func() {
 		Context("when providing different long URLs", func() {
 			It("generates different short URL hashes", func() {
 				shortGoogleURL, err := shortener.HashFromURL("https://google.com")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 
 				shortFacebookURL, err := shortener.HashFromURL("https://facebook.com")
-				Expect(err).To(Succeed())
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(shortGoogleURL.Hash).ToNot(Equal(shortFacebookURL.Hash))
 				Expect(metrics.urlsProcessed).To(Equal(2))
@@ -88,10 +88,10 @@ var _ = Describe("Single URL shortener", func() {
 
 		It("stores the short URL in a repository", func() {
 			shortURL, err := shortener.HashFromURL("https://unizar.es")
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 
-			expectedURLInRepo, err := repository.FindByHash(shortURL.Hash)
-			Expect(err).To(Succeed())
+			expectedURLInRepo, err := repository.FindShortURLByHash(shortURL.Hash)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(expectedURLInRepo.Hash).To(Equal(shortURL.Hash))
 		})
 

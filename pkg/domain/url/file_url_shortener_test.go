@@ -32,7 +32,7 @@ var _ = Describe("Multiple URL Shortener", func() {
 		It("generates a hash for each one", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURLs).To(HaveLen(2))
 			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
@@ -43,17 +43,17 @@ var _ = Describe("Multiple URL Shortener", func() {
 		It("contains the real values from the original URLs", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
-			Expect(shortURLs[0].LongURL).To(Equal("https://google.com"))
-			Expect(shortURLs[1].LongURL).To(Equal("https://unizar.es"))
+			Expect(shortURLs[0].OriginalURL.URL).To(Equal("https://google.com"))
+			Expect(shortURLs[1].OriginalURL.URL).To(Equal("https://unizar.es"))
 		})
 
 		It("generates different short URL hashes for each of the long URLs", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].Hash).ToNot(Equal(shortURLs[1].Hash))
@@ -97,17 +97,17 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 		It("stores the short URL in a repository", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 
-			firstURL, err := repository.FindByHash(shortURLs[0].Hash)
-			Expect(err).To(Succeed())
-			secondURL, err := repository.FindByHash(shortURLs[1].Hash)
-			Expect(err).To(Succeed())
+			firstURL, err := repository.FindShortURLByHash(shortURLs[0].Hash)
+			Expect(err).ToNot(HaveOccurred())
+			secondURL, err := repository.FindShortURLByHash(shortURLs[1].Hash)
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(firstURL.Hash).To(Equal(shortURLs[0].Hash))
-			Expect(firstURL.LongURL).To(Equal("https://google.com"))
+			Expect(firstURL.OriginalURL.URL).To(Equal("https://google.com"))
 			Expect(secondURL.Hash).To(Equal(shortURLs[1].Hash))
-			Expect(secondURL.LongURL).To(Equal("https://unizar.es"))
+			Expect(secondURL.OriginalURL.URL).To(Equal("https://unizar.es"))
 		})
 	})
 })

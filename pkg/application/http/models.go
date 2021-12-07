@@ -9,3 +9,11 @@ type shortURLDataOut struct {
 }
 
 type csvDataOut [][]string
+
+type loadBalancerURLDataIn struct {
+	URLs []string `json:"urls"`
+}
+
+type loadBalancerURLDataOut struct {
+	URL string `json:"url"`
+}

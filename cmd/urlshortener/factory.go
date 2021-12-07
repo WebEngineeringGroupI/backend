@@ -21,9 +21,11 @@ import (
 )
 
 type factory struct {
-	shortURLRepositorySingleton url.ShortURLRepository
-	urlValidatorSingleton       url.Validator
-	metricsSingleton            url.Metrics
+	shortURLRepositorySingleton         url.ShortURLRepository
+	urlValidatorSingleton               url.Validator
+	metricsSingleton                    url.Metrics
+	loadBalancedURLsRepositorySingleton url.LoadBalancedURLsRepository
+	postgresDBSingleton                 *postgres.DB
 }
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
@@ -36,10 +38,11 @@ func (f *factory) NewGRPCServer() *gogrpc.Server {
 
 func (f *factory) httpConfig() http.Config {
 	return http.Config{
-		BaseDomain:         f.baseDomain(),
-		ShortURLRepository: f.shortURLRepository(),
-		URLValidator:       f.urlValidator(),
-		CustomMetrics:      f.customMetrics(),
+		BaseDomain:                 f.baseDomain(),
+		ShortURLRepository:         f.shortURLRepository(),
+		URLValidator:               f.urlValidator(),
+		CustomMetrics:              f.customMetrics(),
+		LoadBalancedURLsRepository: f.loadBalancedURLsRepository(),
 	}
 }
 
@@ -69,11 +72,7 @@ func (f *factory) baseDomain() string {
 
 func (f *factory) shortURLRepository() url.ShortURLRepository {
 	if f.shortURLRepositorySingleton == nil {
-		db, err := postgres.NewDB(f.postgresConnectionDetails())
-		if err != nil {
-			log.Fatalf("unable to create the database connection: %s", err)
-		}
-		f.shortURLRepositorySingleton = db
+		f.shortURLRepositorySingleton = f.newPostgresDB()
 	}
 	return f.shortURLRepositorySingleton
 }
@@ -113,6 +112,24 @@ func (f *factory) urlValidator() url.Validator {
 		f.urlValidatorSingleton = pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
 	}
 	return f.urlValidatorSingleton
+}
+
+func (f *factory) loadBalancedURLsRepository() url.LoadBalancedURLsRepository {
+	if f.loadBalancedURLsRepositorySingleton == nil {
+		f.loadBalancedURLsRepositorySingleton = f.newPostgresDB()
+	}
+	return f.loadBalancedURLsRepositorySingleton
+}
+
+func (f *factory) newPostgresDB() *postgres.DB {
+	if f.postgresDBSingleton == nil {
+		db, err := postgres.NewDB(f.postgresConnectionDetails())
+		if err != nil {
+			log.Fatalf("unable to create the database connection: %s", err)
+		}
+		f.postgresDBSingleton = db
+	}
+	return f.postgresDBSingleton
 }
 
 func newFactory() *factory {

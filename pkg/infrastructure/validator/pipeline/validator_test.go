@@ -24,7 +24,7 @@ var _ = Describe("Multiple Validator", func() {
 	It("executes all validators in the pipeline", func() {
 		validURLs, err := validator.ValidateURLs([]string{"google.com"})
 
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(validURLs).To(BeTrue())
 		Expect(validatorOne.shouldHaveBeenCalled()).To(BeTrue())
 		Expect(validatorTwo.shouldHaveBeenCalled()).To(BeTrue())
@@ -35,7 +35,7 @@ var _ = Describe("Multiple Validator", func() {
 			validatorOne.shouldReturn(false)
 			validURLs, err := validator.ValidateURLs([]string{"google.com"})
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(validURLs).To(BeFalse())
 			Expect(validatorOne.shouldHaveBeenCalled()).To(BeTrue())
 			Expect(validatorTwo.shouldHaveBeenCalled()).To(BeFalse())
@@ -56,7 +56,7 @@ var _ = Describe("Multiple Validator", func() {
 			validatorTwo.shouldReturn(false)
 			validURLs, err := validator.ValidateURLs([]string{"google.com"})
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(validURLs).To(BeFalse())
 			Expect(validatorOne.shouldHaveBeenCalled()).To(BeTrue())
 			Expect(validatorTwo.shouldHaveBeenCalled()).To(BeTrue())

@@ -25,11 +25,11 @@ var _ = Describe("Reachable", func() {
 			defer GinkgoRecover()
 			isValid, err := validator.ValidateURLs(validURLsToValidate())
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(isValid).To(BeTrue())
 			close(done)
 		}()
-		Eventually(done, 2.0).Should(BeClosed())
+		Eventually(done, 3.0).Should(BeClosed())
 	})
 
 	When("a URL is not reachable", func() {
@@ -44,7 +44,7 @@ var _ = Describe("Reachable", func() {
 				Expect(isValid).To(BeFalse())
 				close(done)
 			}()
-			Eventually(done, 2.0).Should(BeClosed())
+			Eventually(done, 3.0).Should(BeClosed())
 		})
 	})
 	When("a URL returns an HTTP code different from 200", func() {
@@ -59,7 +59,7 @@ var _ = Describe("Reachable", func() {
 				Expect(isValid).To(BeFalse())
 				close(done)
 			}()
-			Eventually(done, 2.0).Should(BeClosed())
+			Eventually(done, 3.0).Should(BeClosed())
 		})
 	})
 	When("a URL has an invalid certificate", func() {
@@ -74,7 +74,7 @@ var _ = Describe("Reachable", func() {
 				Expect(isValid).To(BeFalse())
 				close(done)
 			}()
-			Eventually(done, 2.0).Should(BeClosed())
+			Eventually(done, 3.0).Should(BeClosed())
 		})
 	})
 })
