@@ -61,7 +61,7 @@ func (f *FakeMetrics) RecordUrlsProcessed() {
 }
 
 type FakeMultipleShortURLsRepository struct {
-	urls          []*url.MultipleShortURLs
+	urls          []*url.LoadBalancedURL
 	errorToReturn error
 }
 
@@ -69,7 +69,7 @@ func (f *FakeMultipleShortURLsRepository) shouldReturnError(err error) {
 	f.errorToReturn = err
 }
 
-func (f *FakeMultipleShortURLsRepository) Save(urls *url.MultipleShortURLs) error {
+func (f *FakeMultipleShortURLsRepository) Save(urls *url.LoadBalancedURL) error {
 	if f.errorToReturn != nil {
 		return f.errorToReturn
 	}

@@ -13,20 +13,20 @@ var (
 
 const maxNumberOfURLsToLoadBalance = 10
 
-type MultipleShortURLsRepository interface {
-	Save(urls *MultipleShortURLs) error
+type LoadBalancedURLsRepository interface {
+	Save(urls *LoadBalancedURL) error
 }
 
 type LoadBalancer struct {
-	repository MultipleShortURLsRepository
+	repository LoadBalancedURLsRepository
 }
 
-type MultipleShortURLs struct {
+type LoadBalancedURL struct {
 	Hash     string
-	LongURLs []string
+	LongURLs []OriginalURL
 }
 
-func (b *LoadBalancer) ShortURLs(urls []string) (*MultipleShortURLs, error) {
+func (b *LoadBalancer) ShortURLs(urls []string) (*LoadBalancedURL, error) {
 	if len(urls) == 0 {
 		return nil, ErrNoURLsSpecified
 	}
@@ -34,20 +34,35 @@ func (b *LoadBalancer) ShortURLs(urls []string) (*MultipleShortURLs, error) {
 		return nil, ErrTooMuchMultipleURLs
 	}
 
-	multipleShortURLs := &MultipleShortURLs{
-		Hash:     hashFromURL(strings.Join(urls, "")),
-		LongURLs: urls,
+	multipleShortURLs := &LoadBalancedURL{
+		Hash:     hashFromURLs(urls),
+		LongURLs: originalURLsFromRaw(urls),
 	}
 
 	err := b.repository.Save(multipleShortURLs)
 	if err != nil {
-		return nil, fmt.Errorf("error saving multiple URLs into repository: %w", err)
+		return nil, fmt.Errorf("error saving load-balanced URLs into repository: %w", err)
 	}
 
 	return multipleShortURLs, nil
 }
 
-func NewLoadBalancer(repository MultipleShortURLsRepository) *LoadBalancer {
+func originalURLsFromRaw(urls []string) []OriginalURL {
+	originalURLs := make([]OriginalURL, 0, len(urls))
+	for _, aURL := range urls {
+		originalURLs = append(originalURLs, OriginalURL{
+			URL:     aURL,
+			IsValid: false,
+		})
+	}
+	return originalURLs
+}
+
+func hashFromURLs(urls []string) string {
+	return hashFromURL(strings.Join(urls, ""))
+}
+
+func NewLoadBalancer(repository LoadBalancedURLsRepository) *LoadBalancer {
 	return &LoadBalancer{
 		repository: repository,
 	}

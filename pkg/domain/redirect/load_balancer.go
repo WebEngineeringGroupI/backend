@@ -11,21 +11,21 @@ var (
 	ValidURLNotFound = errors.New("valid URL not found")
 )
 
-type MultipleShortURLsRepository interface {
-	FindOriginalURLsForHash(hash string) ([]url.OriginalURL, error)
+type LoadBalancedURLsRepository interface {
+	FindByHash(hash string) (*url.LoadBalancedURL, error)
 }
 
-type MultipleURLRedirector struct {
-	repository MultipleShortURLsRepository
+type LoadBalancerRedirector struct {
+	repository LoadBalancedURLsRepository
 }
 
-func (r *MultipleURLRedirector) ReturnValidOriginalURL(hash string) (string, error) {
-	originalURLs, err := r.repository.FindOriginalURLsForHash(hash)
+func (r *LoadBalancerRedirector) ReturnAValidOriginalURL(hash string) (string, error) {
+	loadBalancedURLs, err := r.repository.FindByHash(hash)
 	if err != nil {
 		return "", err
 	}
 
-	validURLs := r.filterValidURLs(originalURLs)
+	validURLs := r.filterValidURLs(loadBalancedURLs.LongURLs)
 	if len(validURLs) == 0 {
 		return "", fmt.Errorf("there are no valid URLs to redirect to")
 	}
@@ -34,7 +34,7 @@ func (r *MultipleURLRedirector) ReturnValidOriginalURL(hash string) (string, err
 	return validURLs[randomIndex], nil
 }
 
-func (r *MultipleURLRedirector) filterValidURLs(originalURLs []url.OriginalURL) []string {
+func (r *LoadBalancerRedirector) filterValidURLs(originalURLs []url.OriginalURL) []string {
 	validURLs := []string{}
 	for _, aURL := range originalURLs {
 		if aURL.IsValid {
@@ -44,6 +44,6 @@ func (r *MultipleURLRedirector) filterValidURLs(originalURLs []url.OriginalURL) 
 	return validURLs
 }
 
-func NewMultipleURLRedirector(repository MultipleShortURLsRepository) *MultipleURLRedirector {
-	return &MultipleURLRedirector{repository: repository}
+func NewLoadBalancerRedirector(repository LoadBalancedURLsRepository) *LoadBalancerRedirector {
+	return &LoadBalancerRedirector{repository: repository}
 }
