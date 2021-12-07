@@ -20,7 +20,6 @@ type FileURLShortener struct {
 
 func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 	var shortURLs []ShortURL
-	s.metrics.RecordFileURLMetrics()
 
 	longURLs, err := s.formatter.FormatDataToURLs(data)
 	if err != nil {
@@ -37,7 +36,6 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 
 	shortURLs = make([]ShortURL, 0, len(longURLs))
 	for _, longURL := range longURLs {
-		s.metrics.RecordUrlsProcessed()
 		shortURL := ShortURL{
 			Hash: hashFromURL(longURL),
 			OriginalURL: OriginalURL{
@@ -50,10 +48,12 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to save URL '%s' to repository: %w", longURL, err)
 		}
+		s.metrics.RecordUrlsProcessed()
 
 		shortURLs = append(shortURLs, shortURL)
 	}
-
+	
+	s.metrics.RecordFileURLMetrics()
 	return shortURLs, nil
 }
 
