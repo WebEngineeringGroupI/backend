@@ -45,7 +45,7 @@ var _ = Describe("Application / HTTP", func() {
 			response := r.doPOSTRequest("/api/v1/link", longURLRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
-			Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
+			Expect(response).To(HaveHTTPBody(MatchJSON(longURLResponse())))
 
 			shortURL, err := shortURLRepository.FindShortURLByHash("lxqrJ9xF")
 
@@ -58,6 +58,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithMalformedJSON())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("empty URL requested")))
 			})
 		})
 		Context("but the long URL is invalid", func() {
@@ -66,6 +67,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("invalid long URL specified")))
 			})
 		})
 		Context("but the validator is unable to validate the URL", func() {
@@ -74,6 +76,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusInternalServerError))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("internal server error")))
 			})
 		})
 	})
@@ -83,7 +86,7 @@ var _ = Describe("Application / HTTP", func() {
 			response := r.doPOSTRequest("/api/v1/loadbalancer", loadBalancerURLRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
-			Expect(readAll(response.Body)).To(MatchJSON(loadBalancerURLResponse()))
+			Expect(response).To(HaveHTTPBody(MatchJSON(loadBalancerURLResponse())))
 
 			loadBalancedURL, err := loadBalancerURLsRepository.FindLoadBalancedURLByHash("5XEOqhb0")
 			Expect(err).ToNot(HaveOccurred())
@@ -91,6 +94,25 @@ var _ = Describe("Application / HTTP", func() {
 				url.OriginalURL{URL: "https://google.es"},
 				url.OriginalURL{URL: "https://youtube.com"},
 			))
+		})
+
+		Context("but the JSON is malformed", func() {
+			It("returns StatusBadRequest code", func() {
+				response := r.doPOSTRequest("/api/v1/loadbalancer", badURLRequestWithMalformedJSON())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("no URLs specified")))
+			})
+		})
+
+		Context("but the list of URLs is empty", func() {
+			It("returns StatusBadRequest code", func() {
+				validator.shouldReturnValidURL(false)
+				response := r.doPOSTRequest("/api/v1/loadbalancer", badLoadBalancerEmptyURLList())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("no URLs specified")))
+			})
 		})
 	})
 
@@ -124,7 +146,7 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response.StatusCode).To(Equal(gohttp.StatusCreated))
 			Expect(response.Header.Get("Content-type")).To(Equal("text/csv"))
 			Expect(response.Header.Get("Location")).To(Equal("google.com"))
-			Expect(readAll(response.Body)).To(Equal(csvFileResponse()))
+			Expect(response).To(HaveHTTPBody(Equal(csvFileResponse())))
 
 			firstURL, err := shortURLRepository.FindShortURLByHash("uuqVS5Vz")
 			Expect(err).To(Succeed())
@@ -149,6 +171,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTFormRequest("/csv", csvFileRequest())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("invalid long URL specified")))
 			})
 		})
 		Context("but form-data name field is not equal to 'file'", func() {
@@ -157,6 +180,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTFormRequest("/csv", badCsvFileRequest())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("unable to convert data to long urls: the list of URLs is empty")))
 			})
 		})
 	})
@@ -190,10 +214,10 @@ youtube.com
 --unaCadenaDelimitadora--`)
 }
 
-func csvFileResponse() string {
-	return `google.com,http://example.com/r/uuqVS5Vz,
+func csvFileResponse() []byte {
+	return []byte(`google.com,http://example.com/r/uuqVS5Vz,
 youtube.com,http://example.com/r/1+IiyNe6,
-`
+`)
 }
 
 func longURLRequest() io.Reader {
@@ -214,6 +238,10 @@ func loadBalancerURLResponse() string {
 }`
 }
 
+func badLoadBalancerEmptyURLList() io.Reader {
+	return strings.NewReader(`{"urls": []}`)
+}
+
 func longURLResponse() string {
 	return `{
 	"url": "http://example.com/r/lxqrJ9xF"
@@ -232,11 +260,4 @@ func badURLRequestWithFTP() io.Reader {
 {
 	"url": "ftp://google.es"
 }`)
-}
-
-func readAll(reader io.Reader) string {
-	bytes, err := io.ReadAll(reader)
-
-	ExpectWithOffset(1, err).To(Succeed())
-	return string(bytes)
 }
