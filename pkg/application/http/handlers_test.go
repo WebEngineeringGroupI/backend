@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
+	"math/rand"
 	gohttp "net/http"
 	"strings"
 
@@ -17,34 +19,40 @@ import (
 
 var _ = Describe("Application / HTTP", func() {
 	var (
-		r                  *testingRouter
-		shortURLRepository url.ShortURLRepository
-		validator          *FakeURLValidator
-		metrics            *FakeMetrics
+		r                          *testingRouter
+		shortURLRepository         url.ShortURLRepository
+		loadBalancerURLsRepository url.LoadBalancedURLsRepository
+		validator                  *FakeURLValidator
+		metrics                    *FakeMetrics
 	)
 	BeforeEach(func() {
-		shortURLRepository = inmemory.NewRepository()
+		rand.Seed(GinkgoRandomSeed())
+		log.Default().SetOutput(GinkgoWriter)
+		inmemoryRepository := inmemory.NewRepository()
+		shortURLRepository = inmemoryRepository
+		loadBalancerURLsRepository = inmemoryRepository
 		validator = &FakeURLValidator{returnValidURL: true}
 		metrics = &FakeMetrics{}
 		r = newTestingRouter(http.Config{
-			BaseDomain:         "http://example.com",
-			ShortURLRepository: shortURLRepository,
-			URLValidator:       validator,
-			CustomMetrics:      metrics,
+			BaseDomain:                 "http://example.com",
+			ShortURLRepository:         shortURLRepository,
+			LoadBalancedURLsRepository: loadBalancerURLsRepository,
+			URLValidator:               validator,
+			CustomMetrics:              metrics,
 		})
 	})
 
-	Context("when it retrieves an HTTP request for a short URL", func() {
+	Context("when it receives an HTTP request for a short URL", func() {
 		It("returns the short URL", func() {
 			response := r.doPOSTRequest("/api/v1/link", longURLRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
-			Expect(readAll(response.Body)).To(MatchJSON(longURLResponse()))
+			Expect(response).To(HaveHTTPBody(MatchJSON(longURLResponse())))
 
-			shortURL, err := shortURLRepository.FindByHash("lxqrJ9xF")
+			shortURL, err := shortURLRepository.FindShortURLByHash("lxqrJ9xF")
 
-			Expect(err).To(Succeed())
-			Expect(shortURL.LongURL).To(Equal("https://google.es"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(shortURL.OriginalURL.URL).To(Equal("https://google.es"))
 		})
 
 		Context("but the JSON is malformed", func() {
@@ -52,6 +60,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithMalformedJSON())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("empty URL requested")))
 			})
 		})
 		Context("but the long URL is invalid", func() {
@@ -60,6 +69,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("invalid long URL specified")))
 			})
 		})
 		Context("but the validator is unable to validate the URL", func() {
@@ -68,16 +78,52 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusInternalServerError))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("internal server error")))
 			})
 		})
 	})
 
-	Context("when it retrieves an HTTP request for a redirection", func() {
+	Context("when it receives an HTTP request for a load-balancing URL creation", func() {
+		It("returns the load balanced URL", func() {
+			response := r.doPOSTRequest("/api/v1/loadbalancer", loadBalancerURLRequest())
+
+			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
+			Expect(response).To(HaveHTTPBody(MatchJSON(loadBalancerURLResponse())))
+
+			loadBalancedURL, err := loadBalancerURLsRepository.FindLoadBalancedURLByHash("5XEOqhb0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(loadBalancedURL.LongURLs).To(ConsistOf(
+				url.OriginalURL{URL: "https://google.es"},
+				url.OriginalURL{URL: "https://youtube.com"},
+			))
+		})
+
+		Context("but the JSON is malformed", func() {
+			It("returns StatusBadRequest code", func() {
+				response := r.doPOSTRequest("/api/v1/loadbalancer", badURLRequestWithMalformedJSON())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("no URLs specified")))
+			})
+		})
+
+		Context("but the list of URLs is empty", func() {
+			It("returns StatusBadRequest code", func() {
+				validator.shouldReturnValidURL(false)
+				response := r.doPOSTRequest("/api/v1/loadbalancer", badLoadBalancerEmptyURLList())
+
+				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("no URLs specified")))
+			})
+		})
+	})
+
+	Context("when it receives an HTTP request for a redirection", func() {
 		Context("and the URL is present in the repository", func() {
 			It("responds with a URL redirect", func() {
-				_ = shortURLRepository.Save(&url.ShortURL{
-					Hash:    "123456",
-					LongURL: "https://google.com",
+				_ = shortURLRepository.SaveShortURL(&url.ShortURL{
+					Hash:        "123456",
+					OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 				})
 
 				response := r.doGETRequest("/r/123456")
@@ -95,22 +141,82 @@ var _ = Describe("Application / HTTP", func() {
 		})
 	})
 
-	Context("when it retrieves an HTTP request to shorten a CSV file", func() {
+	Context("when it receives an HTTP request for a load-balancing redirection", func() {
+		Context("and the URL is present in the repository", func() {
+			It("responds with a URL redirect", func() {
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+					Hash: "123456",
+					LongURLs: []url.OriginalURL{
+						{URL: "https://google.com", IsValid: true},
+						{URL: "https://youtube.com", IsValid: false},
+					},
+				})
+
+				response := r.doGETRequest("/lb/123456")
+
+				Expect(response).To(HaveHTTPStatus(gohttp.StatusTemporaryRedirect))
+				Expect(response).To(HaveHTTPHeaderWithValue("Location", "https://google.com"))
+			})
+		})
+		Context("and there are multiple valid URLs", func() {
+			It("responds with a different URL each time", func() {
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+					Hash: "123456",
+					LongURLs: []url.OriginalURL{
+						{URL: "https://google.com", IsValid: true},
+						{URL: "https://youtube.com", IsValid: true},
+					},
+				})
+
+				Eventually(func() *gohttp.Response {
+					return r.doGETRequest("/lb/123456")
+				}).Should(HaveHTTPHeaderWithValue("Location", "https://google.com"))
+				Eventually(func() *gohttp.Response {
+					return r.doGETRequest("/lb/123456")
+				}).Should(HaveHTTPHeaderWithValue("Location", "https://youtube.com"))
+			})
+		})
+
+		Context("but the URL does not have any original valid URL", func() {
+			It("returns a 404 error", func() {
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+					Hash: "123456",
+					LongURLs: []url.OriginalURL{
+						{URL: "https://google.com", IsValid: false},
+						{URL: "https://youtube.com", IsValid: false},
+					},
+				})
+
+				response := r.doGETRequest("/lb/123456")
+
+				Expect(response).To(HaveHTTPStatus(gohttp.StatusNotFound))
+			})
+		})
+		Context("but the URL is not present in the repository", func() {
+			It("returns a 404 error", func() {
+				response := r.doGETRequest("/lb/123456")
+
+				Expect(response).To(HaveHTTPStatus(gohttp.StatusNotFound))
+			})
+		})
+	})
+
+	Context("when it receives an HTTP request to shorten a CSV file", func() {
 		It("returns a CSV with the URLs shortened", func() {
 			response := r.doPOSTFormRequest("/csv", csvFileRequest())
 
 			Expect(response.StatusCode).To(Equal(gohttp.StatusCreated))
 			Expect(response.Header.Get("Content-type")).To(Equal("text/csv"))
 			Expect(response.Header.Get("Location")).To(Equal("google.com"))
-			Expect(readAll(response.Body)).To(Equal(csvFileResponse()))
+			Expect(response).To(HaveHTTPBody(Equal(csvFileResponse())))
 
-			firstURL, err := shortURLRepository.FindByHash("uuqVS5Vz")
-			Expect(err).To(Succeed())
-			secondURL, err := shortURLRepository.FindByHash("1+IiyNe6")
-			Expect(err).To(Succeed())
+			firstURL, err := shortURLRepository.FindShortURLByHash("uuqVS5Vz")
+			Expect(err).ToNot(HaveOccurred())
+			secondURL, err := shortURLRepository.FindShortURLByHash("1+IiyNe6")
+			Expect(err).ToNot(HaveOccurred())
 
-			Expect(firstURL.LongURL).To(Equal("google.com"))
-			Expect(secondURL.LongURL).To(Equal("youtube.com"))
+			Expect(firstURL.OriginalURL.URL).To(Equal("google.com"))
+			Expect(secondURL.OriginalURL.URL).To(Equal("youtube.com"))
 		})
 
 		Context("but the CSV is empty", func() {
@@ -127,6 +233,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTFormRequest("/csv", csvFileRequest())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("invalid long URL specified")))
 			})
 		})
 		Context("but form-data name field is not equal to 'file'", func() {
@@ -135,6 +242,7 @@ var _ = Describe("Application / HTTP", func() {
 				response := r.doPOSTFormRequest("/csv", badCsvFileRequest())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
+				Expect(response).To(HaveHTTPBody(ContainSubstring("unable to convert data to long urls: the list of URLs is empty")))
 			})
 		})
 	})
@@ -168,16 +276,32 @@ youtube.com
 --unaCadenaDelimitadora--`)
 }
 
-func csvFileResponse() string {
-	return `google.com,http://example.com/r/uuqVS5Vz,
+func csvFileResponse() []byte {
+	return []byte(`google.com,http://example.com/r/uuqVS5Vz,
 youtube.com,http://example.com/r/1+IiyNe6,
-`
+`)
 }
 
 func longURLRequest() io.Reader {
 	return strings.NewReader(`{
 	"url": "https://google.es"
 }`)
+}
+
+func loadBalancerURLRequest() io.Reader {
+	return strings.NewReader(`{
+	"urls": ["https://google.es", "https://youtube.com"]
+}`)
+}
+
+func loadBalancerURLResponse() string {
+	return `{
+	"url": "http://example.com/lb/5XEOqhb0"
+}`
+}
+
+func badLoadBalancerEmptyURLList() io.Reader {
+	return strings.NewReader(`{"urls": []}`)
 }
 
 func longURLResponse() string {
@@ -198,11 +322,4 @@ func badURLRequestWithFTP() io.Reader {
 {
 	"url": "ftp://google.es"
 }`)
-}
-
-func readAll(reader io.Reader) string {
-	bytes, err := io.ReadAll(reader)
-
-	ExpectWithOffset(1, err).To(Succeed())
-	return string(bytes)
 }

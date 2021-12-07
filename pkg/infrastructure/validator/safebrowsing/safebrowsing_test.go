@@ -16,14 +16,14 @@ var _ = Describe("SafeBrowsing Validator", func() {
 	BeforeEach(func() {
 		var err error
 		validator, err = safebrowsing.NewValidator(os.Getenv("SAFE_BROWSING_API_KEY"))
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Context("when checking if multiple safe websites are valid", func() {
 		It("returns that the URLs are valid", func() {
 			isSafe, err := validator.ValidateURLs([]string{"google.com", "youtube.com"})
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(isSafe).To(BeTrue())
 		})
 	})
@@ -32,7 +32,7 @@ var _ = Describe("SafeBrowsing Validator", func() {
 		It("returns that the URLs are not valid", func() {
 			isSafe, err := validator.ValidateURLs([]string{"google.com", "wp.readhere.in"})
 
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(isSafe).To(BeFalse())
 		})
 	})

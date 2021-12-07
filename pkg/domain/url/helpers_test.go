@@ -1,5 +1,9 @@
 package url_test
 
+import (
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+)
+
 type FakeURLValidator struct {
 	returnValidURL bool
 	returnError    error
@@ -54,4 +58,26 @@ func (f *FakeMetrics) RecordFileURLMetrics() {
 
 func (f *FakeMetrics) RecordUrlsProcessed() {
 	f.urlsProcessed++
+}
+
+type FakeLoadBalancedURLsRepository struct {
+	urls          []*url.LoadBalancedURL
+	errorToReturn error
+}
+
+func (f *FakeLoadBalancedURLsRepository) shouldReturnError(err error) {
+	f.errorToReturn = err
+}
+
+func (f *FakeLoadBalancedURLsRepository) SaveLoadBalancedURL(urls *url.LoadBalancedURL) error {
+	if f.errorToReturn != nil {
+		return f.errorToReturn
+	}
+
+	f.urls = append(f.urls, urls)
+	return nil
+}
+
+func (f *FakeLoadBalancedURLsRepository) FindLoadBalancedURLByHash(hash string) (*url.LoadBalancedURL, error) {
+	panic("implement me")
 }

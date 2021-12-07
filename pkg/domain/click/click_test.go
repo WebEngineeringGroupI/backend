@@ -18,7 +18,10 @@ var _ = Describe("Click logger", func() {
 	BeforeEach(func() {
 		repository = &FakeClickerRepository{clicks: map[string][]*click.Details{}}
 		clicker = click.NewClicker(repository)
-		aShortURL = &url.ShortURL{Hash: "12345678", LongURL: "https://google.com"}
+		aShortURL = &url.ShortURL{Hash: "12345678", OriginalURL: url.OriginalURL{
+			URL:     "https://google.com",
+			IsValid: true,
+		}}
 	})
 
 	Context("when providing click details", func() {

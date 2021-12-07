@@ -19,7 +19,7 @@ var _ = Describe("CSV Formatter", func() {
 	It("transforms a CSV of long URLs into a slice of long URLs", func() {
 		longURLs, err := csvFormatter.FormatDataToURLs([]byte("\"https://google.com\"\n\"https://unizar.es\""))
 
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(longURLs).To(Equal([]string{"https://google.com", "https://unizar.es"}))
 	})
 
