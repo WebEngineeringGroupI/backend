@@ -11,7 +11,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
-type FakeMultipleShortURLsRepository struct {
+type FakeLoadBalancedURLsRepository struct {
 	validURLs     []string
 	invalidURLs   []string
 	errorToReturn error
@@ -19,12 +19,12 @@ type FakeMultipleShortURLsRepository struct {
 
 var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 	var (
-		repository            *FakeMultipleShortURLsRepository
+		repository            *FakeLoadBalancedURLsRepository
 		multipleURLRedirector *redirect.LoadBalancerRedirector
 	)
 
 	BeforeEach(func() {
-		repository = &FakeMultipleShortURLsRepository{}
+		repository = &FakeLoadBalancedURLsRepository{}
 		multipleURLRedirector = redirect.NewLoadBalancerRedirector(repository)
 		rand.Seed(GinkgoRandomSeed())
 	})
@@ -71,21 +71,21 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 	})
 })
 
-func (f *FakeMultipleShortURLsRepository) shouldReturnValidURLs(urls ...string) *FakeMultipleShortURLsRepository {
+func (f *FakeLoadBalancedURLsRepository) shouldReturnValidURLs(urls ...string) *FakeLoadBalancedURLsRepository {
 	f.validURLs = append(f.validURLs, urls...)
 	return f
 }
 
-func (f *FakeMultipleShortURLsRepository) shouldReturnInvalidURLs(urls ...string) *FakeMultipleShortURLsRepository {
+func (f *FakeLoadBalancedURLsRepository) shouldReturnInvalidURLs(urls ...string) *FakeLoadBalancedURLsRepository {
 	f.invalidURLs = append(f.invalidURLs, urls...)
 	return f
 }
-func (f *FakeMultipleShortURLsRepository) shouldReturnError(err error) *FakeMultipleShortURLsRepository {
+func (f *FakeLoadBalancedURLsRepository) shouldReturnError(err error) *FakeLoadBalancedURLsRepository {
 	f.errorToReturn = err
 	return f
 }
 
-func (f *FakeMultipleShortURLsRepository) FindByHash(hash string) (*url.LoadBalancedURL, error) {
+func (f *FakeLoadBalancedURLsRepository) FindByHash(hash string) (*url.LoadBalancedURL, error) {
 	if f.errorToReturn != nil {
 		return nil, f.errorToReturn
 	}
@@ -107,6 +107,6 @@ func (f *FakeMultipleShortURLsRepository) FindByHash(hash string) (*url.LoadBala
 	return &url.LoadBalancedURL{Hash: hash, LongURLs: originalURLs}, nil
 }
 
-func (f *FakeMultipleShortURLsRepository) Save(urls *url.LoadBalancedURL) error {
+func (f *FakeLoadBalancedURLsRepository) Save(urls *url.LoadBalancedURL) error {
 	panic("implement me")
 }

@@ -13,10 +13,10 @@ import (
 var _ = Describe("Domain / URL / Load Balancing", func() {
 	var (
 		loadBalancer                *url.LoadBalancer
-		multipleShortURLsRepository *FakeMultipleShortURLsRepository
+		multipleShortURLsRepository *FakeLoadBalancedURLsRepository
 	)
 	BeforeEach(func() {
-		multipleShortURLsRepository = &FakeMultipleShortURLsRepository{}
+		multipleShortURLsRepository = &FakeLoadBalancedURLsRepository{}
 		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository)
 	})
 

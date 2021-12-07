@@ -60,16 +60,16 @@ func (f *FakeMetrics) RecordUrlsProcessed() {
 	f.urlsProcessed++
 }
 
-type FakeMultipleShortURLsRepository struct {
+type FakeLoadBalancedURLsRepository struct {
 	urls          []*url.LoadBalancedURL
 	errorToReturn error
 }
 
-func (f *FakeMultipleShortURLsRepository) shouldReturnError(err error) {
+func (f *FakeLoadBalancedURLsRepository) shouldReturnError(err error) {
 	f.errorToReturn = err
 }
 
-func (f *FakeMultipleShortURLsRepository) Save(urls *url.LoadBalancedURL) error {
+func (f *FakeLoadBalancedURLsRepository) Save(urls *url.LoadBalancedURL) error {
 	if f.errorToReturn != nil {
 		return f.errorToReturn
 	}
@@ -78,6 +78,6 @@ func (f *FakeMultipleShortURLsRepository) Save(urls *url.LoadBalancedURL) error 
 	return nil
 }
 
-func (f *FakeMultipleShortURLsRepository) FindByHash(hash string) (*url.LoadBalancedURL, error) {
+func (f *FakeLoadBalancedURLsRepository) FindByHash(hash string) (*url.LoadBalancedURL, error) {
 	panic("implement me")
 }
