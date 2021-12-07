@@ -14,6 +14,7 @@ var (
 const maxNumberOfURLsToLoadBalance = 10
 
 type LoadBalancedURLsRepository interface {
+	FindByHash(hash string) (*LoadBalancedURL, error)
 	Save(urls *LoadBalancedURL) error
 }
 

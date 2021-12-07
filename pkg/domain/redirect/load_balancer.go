@@ -3,20 +3,17 @@ package redirect
 import (
 	"errors"
 	"fmt"
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"math/rand"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 var (
-	ValidURLNotFound = errors.New("valid URL not found")
+	ErrValidURLNotFound = errors.New("valid URL not found")
 )
 
-type LoadBalancedURLsRepository interface {
-	FindByHash(hash string) (*url.LoadBalancedURL, error)
-}
-
 type LoadBalancerRedirector struct {
-	repository LoadBalancedURLsRepository
+	repository url.LoadBalancedURLsRepository
 }
 
 func (r *LoadBalancerRedirector) ReturnAValidOriginalURL(hash string) (string, error) {
@@ -44,6 +41,6 @@ func (r *LoadBalancerRedirector) filterValidURLs(originalURLs []url.OriginalURL)
 	return validURLs
 }
 
-func NewLoadBalancerRedirector(repository LoadBalancedURLsRepository) *LoadBalancerRedirector {
+func NewLoadBalancerRedirector(repository url.LoadBalancedURLsRepository) *LoadBalancerRedirector {
 	return &LoadBalancerRedirector{repository: repository}
 }

@@ -77,3 +77,7 @@ func (f *FakeMultipleShortURLsRepository) Save(urls *url.LoadBalancedURL) error 
 	f.urls = append(f.urls, urls)
 	return nil
 }
+
+func (f *FakeMultipleShortURLsRepository) FindByHash(hash string) (*url.LoadBalancedURL, error) {
+	panic("implement me")
+}

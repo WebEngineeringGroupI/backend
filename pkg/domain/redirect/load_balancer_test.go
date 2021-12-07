@@ -1,12 +1,13 @@
 package redirect_test
 
 import (
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"math/rand"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/redirect"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 type FakeMultipleShortURLsRepository struct {
@@ -60,10 +61,10 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 
 	When("the repository does not find a valid URL for the hash", func() {
 		It("returns the error", func() {
-			repository.shouldReturnError(redirect.ValidURLNotFound)
+			repository.shouldReturnError(redirect.ErrValidURLNotFound)
 			longURL, err := multipleURLRedirector.ReturnAValidOriginalURL("someHash")
 
-			Expect(err).To(MatchError(redirect.ValidURLNotFound))
+			Expect(err).To(MatchError(redirect.ErrValidURLNotFound))
 			Expect(longURL).To(BeEmpty())
 		})
 	})
@@ -73,11 +74,11 @@ func (f *FakeMultipleShortURLsRepository) shouldReturnValidURLs(urls ...string) 
 	f.validURLs = append(f.validURLs, urls...)
 	return f
 }
+
 func (f *FakeMultipleShortURLsRepository) shouldReturnInvalidURLs(urls ...string) *FakeMultipleShortURLsRepository {
 	f.invalidURLs = append(f.invalidURLs, urls...)
 	return f
 }
-
 func (f *FakeMultipleShortURLsRepository) shouldReturnError(err error) *FakeMultipleShortURLsRepository {
 	f.errorToReturn = err
 	return f
@@ -103,4 +104,8 @@ func (f *FakeMultipleShortURLsRepository) FindByHash(hash string) (*url.LoadBala
 	}
 
 	return &url.LoadBalancedURL{Hash: hash, LongURLs: originalURLs}, nil
+}
+
+func (f *FakeMultipleShortURLsRepository) Save(urls *url.LoadBalancedURL) error {
+	panic("implement me")
 }

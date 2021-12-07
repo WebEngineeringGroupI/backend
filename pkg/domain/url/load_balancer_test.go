@@ -1,6 +1,7 @@
 package url_test
 
 import (
+	"errors"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -38,6 +39,16 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 					{URL: "anotherURL", IsValid: false},
 				},
 			})))
+		})
+	})
+
+	When("the repository returns an error", func() {
+		It("returns the error from the repository", func() {
+			multipleShortURLsRepository.shouldReturnError(errors.New("unknown error"))
+			loadBalancedURLs, err := loadBalancer.ShortURLs([]string{"aURL"})
+
+			Expect(err).To(MatchError("error saving load-balanced URLs into repository: unknown error"))
+			Expect(loadBalancedURLs).To(BeNil())
 		})
 	})
 
