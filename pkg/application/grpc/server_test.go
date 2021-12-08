@@ -2,7 +2,6 @@ package grpc_test
 
 import (
 	"context"
-	"errors"
 
 	genproto "github.com/WebEngineeringGroupI/genproto-go/api/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -17,16 +16,13 @@ var _ = Describe("Server", func() {
 	var (
 		connection      gogrpc.ClientConnInterface
 		closeConnection context.CancelFunc
-		urlValidator    *FakeURLValidator
 		metrics         *FakeMetrics
 	)
 	BeforeEach(func() {
-		urlValidator = &FakeURLValidator{returnValidURL: true}
 		metrics = &FakeMetrics{}
 		connection, closeConnection = newTestingConnection(grpc.Config{
 			BaseDomain:         "https://example.com",
 			ShortURLRepository: inmemory.NewRepository(),
-			URLValidator:       urlValidator,
 			CustomMetrics:      metrics,
 		})
 	})
@@ -56,41 +52,15 @@ var _ = Describe("Server", func() {
 			response, err := shortURLsClient.Recv()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(response).ToNot(BeNil())
-			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.LongUrl).To(Equal("https://google.com"))
-			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.ShortUrl).To(Equal("https://example.com/r/cv6VxVdu"))
+			Expect(response.GetSuccess()).ToNot(BeNil())
+			Expect(response.GetSuccess().LongUrl).To(Equal("https://google.com"))
+			Expect(response.GetSuccess().ShortUrl).To(Equal("https://example.com/r/cv6VxVdu"))
 
 			response, err = shortURLsClient.Recv()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.LongUrl).To(Equal("https://youtube.com"))
-			Expect(response.Result.(*genproto.ShortURLsResponse_Success_).Success.ShortUrl).To(Equal("https://example.com/r/unW6a4Dd"))
-		})
-
-		When("the URL is not valid", func() {
-			It("returns the error", func() {
-				urlValidator.shouldReturnValidURL(false)
-
-				err := shortURLsClient.Send(&genproto.ShortURLsRequest{Url: "https://google.com"})
-				Expect(err).ToNot(HaveOccurred())
-
-				response, err := shortURLsClient.Recv()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Url).To(Equal("https://google.com"))
-				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Error).To(Equal("invalid long URL specified"))
-			})
-		})
-
-		When("the validator is unable to verify the URL", func() {
-			It("returns the error", func() {
-				urlValidator.shouldReturnError(errors.New("unknown testing error"))
-
-				err := shortURLsClient.Send(&genproto.ShortURLsRequest{Url: "https://google.com"})
-				Expect(err).ToNot(HaveOccurred())
-
-				response, err := shortURLsClient.Recv()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Url).To(Equal("https://google.com"))
-				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Error).To(Equal("unknown testing error"))
-			})
+			Expect(response.GetSuccess()).ToNot(BeNil())
+			Expect(response.GetSuccess().LongUrl).To(Equal("https://youtube.com"))
+			Expect(response.GetSuccess().ShortUrl).To(Equal("https://example.com/r/unW6a4Dd"))
 		})
 	})
 })

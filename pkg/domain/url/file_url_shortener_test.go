@@ -15,17 +15,15 @@ var _ = Describe("Multiple URL Shortener", func() {
 		shortener  *url.FileURLShortener
 		repository url.ShortURLRepository
 		formatter  *FakeFormatter
-		validator  *FakeURLValidator
 		metrics    *FakeMetrics
 	)
 
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
-		validator = &FakeURLValidator{returnValidURL: true}
 		formatter = &FakeFormatter{}
 		metrics = &FakeMetrics{}
 		formatter.shouldReturnURLs(aLongURLSet())
-		shortener = url.NewFileURLShortener(repository, validator, metrics, formatter)
+		shortener = url.NewFileURLShortener(repository, metrics, formatter)
 	})
 
 	Context("when providing multiple long URLs", func() {
@@ -59,28 +57,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 		Context("but the provided data is not valid", func() {
 			It("returns the error since it's unable to transform the data", func() {
 				formatter.shouldReturnError(errors.New("unknown error"))
-				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-
-				Expect(err).To(MatchError("unknown error"))
-				Expect(shortURLs).To(BeNil())
-				Expect(metrics.fileURLMetrics).To(Equal(1))
-			})
-		})
-
-		Context("and the provided URL is not valid", func() {
-			It("validates that the provided URL is not valid", func() {
-				validator.shouldReturnValidURL(false)
-				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-
-				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
-				Expect(shortURLs).To(BeNil())
-				Expect(metrics.fileURLMetrics).To(Equal(1))
-			})
-		})
-
-		Context("but the validator returns an error", func() {
-			It("returns the error since it's unable to validate the URL", func() {
-				validator.shouldReturnError(errors.New("unknown error"))
 				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
 				Expect(err).To(MatchError("unknown error"))

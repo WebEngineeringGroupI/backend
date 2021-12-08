@@ -13,7 +13,6 @@ import (
 type Config struct {
 	BaseDomain                 string
 	ShortURLRepository         url.ShortURLRepository
-	URLValidator               url.Validator
 	CustomMetrics              url.Metrics
 	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
 }

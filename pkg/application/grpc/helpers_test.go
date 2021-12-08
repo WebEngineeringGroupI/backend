@@ -37,27 +37,6 @@ func newTestingConnection(config grpc.Config) (*gogrpc.ClientConn, context.Cance
 	return conn, cancel
 }
 
-type FakeURLValidator struct {
-	returnValidURL bool
-	returnError    error
-}
-
-func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
-	f.returnValidURL = validURL
-}
-
-func (f *FakeURLValidator) shouldReturnError(err error) {
-	f.returnError = err
-}
-
-func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
-func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
 type FakeMetrics struct {
 	singleURLMetrics int
 	fileURLMetrics   int

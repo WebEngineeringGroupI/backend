@@ -9,7 +9,6 @@ import (
 
 type SingleURLShortener struct {
 	repository ShortURLRepository
-	validator  Validator
 	metrics    Metrics
 }
 
@@ -30,13 +29,6 @@ var (
 // FIXME(fede): Rename to something like ShortURLFromLong
 func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 	s.metrics.RecordSingleURLMetrics()
-	isValidURL, err := s.validator.ValidateURLs([]string{aLongURL})
-	if err != nil {
-		return nil, err
-	}
-	if !isValidURL {
-		return nil, ErrInvalidLongURLSpecified
-	}
 
 	shortURL := &ShortURL{
 		Hash: hashFromURL(aLongURL),
@@ -46,7 +38,7 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		},
 	}
 
-	err = s.repository.SaveShortURL(shortURL) // FIXME(fede): test this error
+	err := s.repository.SaveShortURL(shortURL) // FIXME(fede): test this error
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
@@ -61,10 +53,9 @@ func hashFromURL(aLongURL string) string {
 	return hash
 }
 
-func NewSingleURLShortener(repository ShortURLRepository, validator Validator, metrics Metrics) *SingleURLShortener {
+func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics) *SingleURLShortener {
 	return &SingleURLShortener{
 		repository: repository,
-		validator:  validator,
 		metrics:    metrics,
 	}
 }

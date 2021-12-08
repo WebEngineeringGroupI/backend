@@ -2,7 +2,6 @@ package http_test
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"log"
 	"math/rand"
@@ -22,7 +21,6 @@ var _ = Describe("Application / HTTP", func() {
 		r                          *testingRouter
 		shortURLRepository         url.ShortURLRepository
 		loadBalancerURLsRepository url.LoadBalancedURLsRepository
-		validator                  *FakeURLValidator
 		metrics                    *FakeMetrics
 	)
 	BeforeEach(func() {
@@ -31,13 +29,11 @@ var _ = Describe("Application / HTTP", func() {
 		inmemoryRepository := inmemory.NewRepository()
 		shortURLRepository = inmemoryRepository
 		loadBalancerURLsRepository = inmemoryRepository
-		validator = &FakeURLValidator{returnValidURL: true}
 		metrics = &FakeMetrics{}
 		r = newTestingRouter(http.Config{
 			BaseDomain:                 "http://example.com",
 			ShortURLRepository:         shortURLRepository,
 			LoadBalancedURLsRepository: loadBalancerURLsRepository,
-			URLValidator:               validator,
 			CustomMetrics:              metrics,
 		})
 	})
@@ -61,24 +57,6 @@ var _ = Describe("Application / HTTP", func() {
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
 				Expect(response).To(HaveHTTPBody(ContainSubstring("empty URL requested")))
-			})
-		})
-		Context("but the long URL is invalid", func() {
-			It("returns StatusBadRequest code", func() {
-				validator.shouldReturnValidURL(false)
-				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
-
-				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
-				Expect(response).To(HaveHTTPBody(ContainSubstring("invalid long URL specified")))
-			})
-		})
-		Context("but the validator is unable to validate the URL", func() {
-			It("returns InternalServerError", func() {
-				validator.shouldReturnError(errors.New("error validating the URL"))
-				response := r.doPOSTRequest("/api/v1/link", badURLRequestWithFTP())
-
-				Expect(response.StatusCode).To(Equal(gohttp.StatusInternalServerError))
-				Expect(response).To(HaveHTTPBody(ContainSubstring("internal server error")))
 			})
 		})
 	})
@@ -109,7 +87,6 @@ var _ = Describe("Application / HTTP", func() {
 
 		Context("but the list of URLs is empty", func() {
 			It("returns StatusBadRequest code", func() {
-				validator.shouldReturnValidURL(false)
 				response := r.doPOSTRequest("/api/v1/loadbalancer", badLoadBalancerEmptyURLList())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
@@ -227,18 +204,8 @@ var _ = Describe("Application / HTTP", func() {
 			})
 		})
 
-		Context("but a long URL is invalid", func() {
-			It("returns StatusBadRequest code", func() {
-				validator.shouldReturnValidURL(false)
-				response := r.doPOSTFormRequest("/csv", csvFileRequest())
-
-				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
-				Expect(response).To(HaveHTTPBody(ContainSubstring("invalid long URL specified")))
-			})
-		})
 		Context("but form-data name field is not equal to 'file'", func() {
 			It("returns StatusBadRequest code", func() {
-				validator.shouldReturnValidURL(true)
 				response := r.doPOSTFormRequest("/csv", badCsvFileRequest())
 
 				Expect(response.StatusCode).To(Equal(gohttp.StatusBadRequest))
@@ -314,12 +281,5 @@ func badURLRequestWithMalformedJSON() io.Reader {
 	return strings.NewReader(`
 {
 	"badjson": "https://google.es"
-}`)
-}
-
-func badURLRequestWithFTP() io.Reader {
-	return strings.NewReader(`
-{
-	"url": "ftp://google.es"
 }`)
 }

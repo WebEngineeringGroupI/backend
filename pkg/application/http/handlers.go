@@ -24,7 +24,7 @@ type VariableExtractor interface {
 }
 
 func (e *HandlerRepository) shortener() http.HandlerFunc {
-	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, e.config.URLValidator, e.config.CustomMetrics)
+	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn
@@ -108,7 +108,7 @@ func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) redirector() http.HandlerFunc {
-	redirector := redirect.NewRedirector(e.config.ShortURLRepository, e.config.URLValidator)
+	redirector := redirect.NewRedirector(e.config.ShortURLRepository)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		shortURLHash := e.variableExtractor.Extract(request, "hash")
@@ -154,7 +154,7 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) csvShortener() http.HandlerFunc {
-	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.URLValidator, e.config.CustomMetrics, formatter.NewCSV())
+	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics, formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		data := []byte(request.FormValue("file"))

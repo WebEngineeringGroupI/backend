@@ -1,8 +1,6 @@
 package redirect_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -14,14 +12,12 @@ import (
 var _ = Describe("Redirect", func() {
 	var (
 		repository url.ShortURLRepository
-		validator  *FakeURLValidator
 		redirector *redirect.Redirector
 	)
 
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
-		validator = &FakeURLValidator{returnValidURL: true}
-		redirector = redirect.NewRedirector(repository, validator)
+		redirector = redirect.NewRedirector(repository)
 	})
 
 	Context("when providing a hash", func() {
@@ -69,36 +65,18 @@ var _ = Describe("Redirect", func() {
 		})
 	})
 
-	Context("when validating the URL", func() {
-		Context("if the URL is not valid", func() {
-			It("returns an error saying it's not valid", func() {
-				shortURL := &url.ShortURL{
-					Hash:        "12345",
-					OriginalURL: url.OriginalURL{URL: "some-url", IsValid: true},
-				}
-				_ = repository.SaveShortURL(shortURL)
-				validator.shouldReturnValidURL(false)
+	Context("if the URL is not valid", func() {
+		It("returns an error saying it's not valid", func() {
+			shortURL := &url.ShortURL{
+				Hash:        "12345",
+				OriginalURL: url.OriginalURL{URL: "some-url", IsValid: false},
+			}
+			_ = repository.SaveShortURL(shortURL)
 
-				originalURL, err := redirector.ReturnOriginalURL("12345")
+			originalURL, err := redirector.ReturnOriginalURL("12345")
 
-				Expect(err).To(MatchError("the url 'some-url' is marked as invalid"))
-				Expect(originalURL).To(BeEmpty())
-			})
-		})
-		Context("if the validator is not able to validate the URL", func() {
-			It("returns the error saying it's not able to validate it", func() {
-				shortURL := &url.ShortURL{
-					Hash:        "12345",
-					OriginalURL: url.OriginalURL{URL: "some-url", IsValid: true},
-				}
-				_ = repository.SaveShortURL(shortURL)
-				validator.shouldReturnError(errors.New("unknown validation error"))
-
-				originalURL, err := redirector.ReturnOriginalURL("12345")
-
-				Expect(err).To(MatchError("unknown validation error"))
-				Expect(originalURL).To(BeEmpty())
-			})
+			Expect(err).To(MatchError("the url 'some-url' is marked as invalid"))
+			Expect(originalURL).To(BeEmpty())
 		})
 	})
 
@@ -109,20 +87,3 @@ var _ = Describe("Redirect", func() {
 		})
 	})
 })
-
-type FakeURLValidator struct {
-	returnValidURL bool
-	returnError    error
-}
-
-func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
-	f.returnValidURL = validURL
-}
-
-func (f *FakeURLValidator) shouldReturnError(err error) {
-	f.returnError = err
-}
-
-func (f *FakeURLValidator) ValidateURLs(urls []string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}

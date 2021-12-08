@@ -1,8 +1,6 @@
 package url_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -14,15 +12,13 @@ var _ = Describe("Single URL shortener", func() {
 	var (
 		shortener  *url.SingleURLShortener
 		repository url.ShortURLRepository
-		validator  *FakeURLValidator
 		metrics    *FakeMetrics
 	)
 
 	BeforeEach(func() {
 		repository = inmemory.NewRepository()
-		validator = &FakeURLValidator{returnValidURL: true}
 		metrics = &FakeMetrics{}
-		shortener = url.NewSingleURLShortener(repository, validator, metrics)
+		shortener = url.NewSingleURLShortener(repository, metrics)
 	})
 
 	Context("when providing a long URL", func() {
@@ -42,30 +38,6 @@ var _ = Describe("Single URL shortener", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.OriginalURL.URL).To(Equal(aLongURL))
 			Expect(metrics.singleURLMetrics).To(Equal(1))
-		})
-
-		Context("and the provided URL is not valid", func() {
-			It("validates that the provided URL is not valid", func() {
-				aLongURL := "ftp://google.com"
-				validator.shouldReturnValidURL(false)
-				shortURL, err := shortener.HashFromURL(aLongURL)
-
-				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
-				Expect(shortURL).To(BeNil())
-				Expect(metrics.singleURLMetrics).To(Equal(1))
-			})
-		})
-
-		Context("but the validator returns an error", func() {
-			It("returns the error since it's unable to validate the URL", func() {
-				aLongURL := "an-url"
-				validator.shouldReturnError(errors.New("unknown error"))
-				shortURL, err := shortener.HashFromURL(aLongURL)
-
-				Expect(err).To(MatchError("unknown error"))
-				Expect(shortURL).To(BeNil())
-				Expect(metrics.singleURLMetrics).To(Equal(1))
-			})
 		})
 
 		Context("when providing different long URLs", func() {

@@ -4,27 +4,6 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
-type FakeURLValidator struct {
-	returnValidURL bool
-	returnError    error
-}
-
-func (f *FakeURLValidator) shouldReturnValidURL(validURL bool) {
-	f.returnValidURL = validURL
-}
-
-func (f *FakeURLValidator) shouldReturnError(err error) {
-	f.returnError = err
-}
-
-func (f *FakeURLValidator) ValidateURL(url string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
-func (f *FakeURLValidator) ValidateURLs(url []string) (bool, error) {
-	return f.returnValidURL, f.returnError
-}
-
 type FakeFormatter struct {
 	longURLs []string
 	error    error

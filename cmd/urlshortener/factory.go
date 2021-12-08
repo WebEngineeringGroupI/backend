@@ -5,7 +5,6 @@ import (
 	gohttp "net/http"
 	"os"
 	"strconv"
-	"time"
 
 	gogrpc "google.golang.org/grpc"
 
@@ -14,15 +13,10 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/pipeline"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/reachable"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/safebrowsing"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/validator/schema"
 )
 
 type factory struct {
 	shortURLRepositorySingleton         url.ShortURLRepository
-	urlValidatorSingleton               url.Validator
 	metricsSingleton                    url.Metrics
 	loadBalancedURLsRepositorySingleton url.LoadBalancedURLsRepository
 	postgresDBSingleton                 *postgres.DB
@@ -40,7 +34,6 @@ func (f *factory) httpConfig() http.Config {
 	return http.Config{
 		BaseDomain:                 f.baseDomain(),
 		ShortURLRepository:         f.shortURLRepository(),
-		URLValidator:               f.urlValidator(),
 		CustomMetrics:              f.customMetrics(),
 		LoadBalancedURLsRepository: f.loadBalancedURLsRepository(),
 	}
@@ -50,7 +43,6 @@ func (f *factory) grpcConfig() grpc.Config {
 	return grpc.Config{
 		BaseDomain:         f.baseDomain(),
 		ShortURLRepository: f.shortURLRepository(),
-		URLValidator:       f.urlValidator(),
 		CustomMetrics:      f.customMetrics(),
 	}
 }
@@ -99,19 +91,6 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 		log.Fatalf("mandatory %s env var is not set", variable)
 	}
 	return value
-}
-
-func (f *factory) urlValidator() url.Validator {
-	if f.urlValidatorSingleton == nil {
-		schemaValidator := schema.NewValidator("http", "https")
-		reachableValidator := reachable.NewValidator(gohttp.DefaultClient, 2*time.Second)
-		safeBrowsingValidator, err := safebrowsing.NewValidator(f.mandatoryEnvVarValue("SAFE_BROWSING_API_KEY"))
-		if err != nil {
-			log.Fatalf("unable to build SafeBrowsing URL validator: %s", err)
-		}
-		f.urlValidatorSingleton = pipeline.NewValidator(schemaValidator, reachableValidator, safeBrowsingValidator)
-	}
-	return f.urlValidatorSingleton
 }
 
 func (f *factory) loadBalancedURLsRepository() url.LoadBalancedURLsRepository {

@@ -18,7 +18,8 @@ type server struct {
 }
 
 func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServer) error {
-	for request, err := shortURLsServer.Recv(); ; request, err = shortURLsServer.Recv() {
+	for {
+		request, err := shortURLsServer.Recv()
 		if err == io.EOF {
 			return nil
 		}
@@ -59,7 +60,6 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
-	URLValidator       url.Validator
 	CustomMetrics      url.Metrics
 }
 
@@ -67,7 +67,7 @@ func NewServer(config Config) *grpc.Server {
 	grpcServer := grpc.NewServer()
 	srv := &server{
 		baseDomain:   config.BaseDomain,
-		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics),
+		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)
