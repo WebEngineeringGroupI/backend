@@ -32,7 +32,6 @@ var _ = Describe("Single URL shortener", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.Hash).To(HaveLen(8))
-			Expect(metrics.urlsProcessed).To(Equal(1))
 			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})
 
@@ -42,7 +41,6 @@ var _ = Describe("Single URL shortener", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.OriginalURL.URL).To(Equal(aLongURL))
-			Expect(metrics.urlsProcessed).To(Equal(1))
 			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})
 
@@ -54,7 +52,6 @@ var _ = Describe("Single URL shortener", func() {
 
 				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
 				Expect(shortURL).To(BeNil())
-				Expect(metrics.urlsProcessed).To(Equal(0))
 				Expect(metrics.singleURLMetrics).To(Equal(1))
 			})
 		})
@@ -67,7 +64,6 @@ var _ = Describe("Single URL shortener", func() {
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURL).To(BeNil())
-				Expect(metrics.urlsProcessed).To(Equal(0))
 				Expect(metrics.singleURLMetrics).To(Equal(1))
 			})
 		})
@@ -81,7 +77,6 @@ var _ = Describe("Single URL shortener", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(shortGoogleURL.Hash).ToNot(Equal(shortFacebookURL.Hash))
-				Expect(metrics.urlsProcessed).To(Equal(2))
 				Expect(metrics.singleURLMetrics).To(Equal(2))
 			})
 		})

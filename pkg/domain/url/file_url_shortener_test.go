@@ -34,7 +34,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURLs).To(HaveLen(2))
-			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].Hash).To(HaveLen(8))
 			Expect(shortURLs[1].Hash).To(HaveLen(8))
@@ -44,7 +43,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].OriginalURL.URL).To(Equal("https://google.com"))
 			Expect(shortURLs[1].OriginalURL.URL).To(Equal("https://unizar.es"))
@@ -54,7 +52,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(metrics.urlsProcessed).To(Equal(2))
 			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].Hash).ToNot(Equal(shortURLs[1].Hash))
 		})
@@ -66,7 +63,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURLs).To(BeNil())
-				Expect(metrics.urlsProcessed).To(Equal(0))
 				Expect(metrics.fileURLMetrics).To(Equal(1))
 			})
 		})
@@ -78,7 +74,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
 				Expect(shortURLs).To(BeNil())
-				Expect(metrics.urlsProcessed).To(Equal(0))
 				Expect(metrics.fileURLMetrics).To(Equal(1))
 			})
 		})
@@ -90,7 +85,6 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURLs).To(BeNil())
-				Expect(metrics.urlsProcessed).To(Equal(0))
 				Expect(metrics.fileURLMetrics).To(Equal(1))
 			})
 		})

@@ -51,8 +51,6 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
-	s.metrics.RecordUrlsProcessed()
-
 	return shortURL, nil
 }
 
