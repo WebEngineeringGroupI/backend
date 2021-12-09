@@ -1,6 +1,7 @@
 package url
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
@@ -27,7 +28,7 @@ var (
 )
 
 // FIXME(fede): Rename to something like ShortURLFromLong
-func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
+func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (*ShortURL, error) {
 	s.metrics.RecordSingleURLMetrics()
 
 	shortURL := &ShortURL{
@@ -38,7 +39,7 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		},
 	}
 
-	err := s.repository.SaveShortURL(shortURL) // FIXME(fede): test this error
+	err := s.repository.SaveShortURL(ctx, shortURL) // FIXME(fede): test this error
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}

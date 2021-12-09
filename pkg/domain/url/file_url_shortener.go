@@ -1,6 +1,7 @@
 package url
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -17,7 +18,7 @@ type FileURLShortener struct {
 	metrics    Metrics
 }
 
-func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
+func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) ([]ShortURL, error) {
 	var shortURLs []ShortURL
 	s.metrics.RecordFileURLMetrics()
 
@@ -36,7 +37,7 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 			},
 		}
 
-		err := s.repository.SaveShortURL(&shortURL)
+		err := s.repository.SaveShortURL(ctx, &shortURL)
 		if err != nil {
 			return nil, fmt.Errorf("unable to save URL '%s' to repository: %w", longURL, err)
 		}

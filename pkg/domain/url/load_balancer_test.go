@@ -1,6 +1,7 @@
 package url_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -14,15 +15,17 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 	var (
 		loadBalancer                *url.LoadBalancer
 		multipleShortURLsRepository *FakeLoadBalancedURLsRepository
+		ctx                         context.Context
 	)
 	BeforeEach(func() {
 		multipleShortURLsRepository = &FakeLoadBalancedURLsRepository{}
 		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository)
+		ctx = context.Background()
 	})
 
 	When("a single URL is generated from multiple URLs", func() {
 		It("is correctly generated", func() {
-			loadBalancedURLs, err := loadBalancer.ShortURLs([]string{"aURL", "anotherURL"})
+			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL", "anotherURL"})
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(loadBalancedURLs).To(Equal(&url.LoadBalancedURL{
@@ -45,7 +48,7 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 	When("the repository returns an error", func() {
 		It("returns the error from the repository", func() {
 			multipleShortURLsRepository.shouldReturnError(errors.New("unknown error"))
-			loadBalancedURLs, err := loadBalancer.ShortURLs([]string{"aURL"})
+			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL"})
 
 			Expect(err).To(MatchError("error saving load-balanced URLs into repository: unknown error"))
 			Expect(loadBalancedURLs).To(BeNil())
@@ -54,7 +57,7 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 
 	When("the list of URLs is empty", func() {
 		It("returns an error", func() {
-			loadBalancedURLs, err := loadBalancer.ShortURLs([]string{})
+			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{})
 
 			Expect(err).To(MatchError(url.ErrNoURLsSpecified))
 			Expect(loadBalancedURLs).To(BeNil())
@@ -63,7 +66,7 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 
 	When("the list has more than the allowed number of elements", func() {
 		It("returns an error saying no so many elements are allowed", func() {
-			multipleShortURLs, err := loadBalancer.ShortURLs(urlListOfSize(11))
+			multipleShortURLs, err := loadBalancer.ShortURLs(ctx, urlListOfSize(11))
 
 			Expect(err).To(MatchError(url.ErrTooMuchMultipleURLs))
 			Expect(multipleShortURLs).To(BeNil())

@@ -27,7 +27,7 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 			return err
 		}
 
-		shortURL, err := s.urlShortener.HashFromURL(request.Url)
+		shortURL, err := s.urlShortener.HashFromURL(shortURLsServer.Context(), request.Url)
 		if err != nil {
 			err := shortURLsServer.Send(&genproto.ShortURLsResponse{
 				Result: &genproto.ShortURLsResponse_Error_{

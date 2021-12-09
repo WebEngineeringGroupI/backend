@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -25,9 +26,9 @@ type DB struct {
 	engine *xorm.Engine
 }
 
-func (d *DB) FindLoadBalancedURLByHash(hash string) (*url.LoadBalancedURL, error) {
+func (d *DB) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {
 	var result model.LoadBalancedUrlList
-	err := d.engine.Find(&result, &model.LoadBalancedUrl{Hash: hash})
+	err := d.engine.Context(ctx).Find(&result, &model.LoadBalancedUrl{Hash: hash})
 	if len(result) == 0 {
 		return nil, url.ErrValidURLNotFound // FIXME(fede): Should we use another kind of error here?
 	}
@@ -38,9 +39,9 @@ func (d *DB) FindLoadBalancedURLByHash(hash string) (*url.LoadBalancedURL, error
 	return model.LoadBalancedURLToDomain(result), nil
 }
 
-func (d *DB) SaveLoadBalancedURL(aURL *url.LoadBalancedURL) error {
+func (d *DB) SaveLoadBalancedURL(ctx context.Context, aURL *url.LoadBalancedURL) error {
 	dbURL := model.LoadBalancedURLFromDomain(aURL)
-	_, err := d.engine.Insert(&dbURL)
+	_, err := d.engine.Context(ctx).Insert(&dbURL)
 
 	var pqError *pq.Error
 	if errors.As(err, &pqError) {
@@ -59,9 +60,9 @@ var (
 	errDuplicateConstraintViolation pq.ErrorCode = "23505"
 )
 
-func (d *DB) SaveShortURL(url *url.ShortURL) error {
+func (d *DB) SaveShortURL(ctx context.Context, url *url.ShortURL) error {
 	shortURL := model.ShortURLFromDomain(url)
-	_, err := d.engine.Insert(&shortURL)
+	_, err := d.engine.Context(ctx).Insert(&shortURL)
 
 	var pqError *pq.Error
 	if errors.As(err, &pqError) {
@@ -75,9 +76,9 @@ func (d *DB) SaveShortURL(url *url.ShortURL) error {
 	return nil
 }
 
-func (d *DB) FindShortURLByHash(hash string) (*url.ShortURL, error) {
+func (d *DB) FindShortURLByHash(ctx context.Context, hash string) (*url.ShortURL, error) {
 	shortURL := model.Shorturl{Hash: hash}
-	exists, err := d.engine.Get(&shortURL)
+	exists, err := d.engine.Context(ctx).Get(&shortURL)
 	if !exists {
 		return nil, url.ErrShortURLNotFound
 	}
@@ -88,16 +89,16 @@ func (d *DB) FindShortURLByHash(hash string) (*url.ShortURL, error) {
 	return model.ShortURLToDomain(shortURL), nil
 }
 
-func (d *DB) SaveClick(click *click.Details) error {
+func (d *DB) SaveClick(ctx context.Context, click *click.Details) error {
 	clickModel := model.ClickDetailsFromDomain(click)
-	_, err := d.engine.Insert(&clickModel)
+	_, err := d.engine.Context(ctx).Insert(&clickModel)
 	if err != nil {
 		return fmt.Errorf("unknow error saving click: %w", err)
 	}
 	return nil
 }
 
-func (d *DB) FindClicksByHash(hash string) ([]*click.Details, error) {
+func (d *DB) FindClicksByHash(ctx context.Context, hash string) ([]*click.Details, error) {
 	var clicksModel []*model.Clickdetails
 	err := d.engine.Find(&clicksModel, model.Clickdetails{Hash: hash})
 	if err != nil {

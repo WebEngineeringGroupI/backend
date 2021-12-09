@@ -1,6 +1,7 @@
 package redirect
 
 import (
+	"context"
 	"math/rand"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
@@ -10,8 +11,8 @@ type LoadBalancerRedirector struct {
 	repository url.LoadBalancedURLsRepository
 }
 
-func (r *LoadBalancerRedirector) ReturnAValidOriginalURL(hash string) (string, error) {
-	loadBalancedURLs, err := r.repository.FindLoadBalancedURLByHash(hash)
+func (r *LoadBalancerRedirector) ReturnAValidOriginalURL(ctx context.Context, hash string) (string, error) {
+	loadBalancedURLs, err := r.repository.FindLoadBalancedURLByHash(ctx, hash)
 	if err != nil {
 		return "", err
 	}

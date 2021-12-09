@@ -1,6 +1,8 @@
 package postgres_test
 
 import (
+	"context"
+
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 
 	. "github.com/onsi/ginkgo"
@@ -13,9 +15,11 @@ import (
 var _ = Describe("Postgres", func() {
 	var (
 		repository *postgres.DB
+		ctx        context.Context
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		var err error
 		repository, err = postgres.NewDB(postgres.ConnectionDetails{
 			User:     "postgres",
@@ -30,10 +34,10 @@ var _ = Describe("Postgres", func() {
 	})
 
 	It("saves the short URL in the database and retrieves it again", func() {
-		err := repository.SaveShortURL(aShortURL())
+		err := repository.SaveShortURL(ctx, aShortURL())
 		Expect(err).ToNot(HaveOccurred())
 
-		retrievedShortURL, err := repository.FindShortURLByHash("12345678")
+		retrievedShortURL, err := repository.FindShortURLByHash(ctx, "12345678")
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(retrievedShortURL.Hash).To(Equal("12345678"))
@@ -42,17 +46,17 @@ var _ = Describe("Postgres", func() {
 
 	Context("when the short URL already exists in the database", func() {
 		It("doesn't return an error", func() {
-			err := repository.SaveShortURL(aShortURL())
+			err := repository.SaveShortURL(ctx, aShortURL())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = repository.SaveShortURL(aShortURL())
+			err = repository.SaveShortURL(ctx, aShortURL())
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
 	Context("when the short URL doesn't exist in the database", func() {
 		It("returns an error saying not found", func() {
-			retrievedShortURL, err := repository.FindShortURLByHash("non_existing_hash")
+			retrievedShortURL, err := repository.FindShortURLByHash(ctx, "non_existing_hash")
 
 			Expect(err).To(MatchError(url.ErrShortURLNotFound))
 			Expect(retrievedShortURL).To(BeNil())
@@ -60,10 +64,10 @@ var _ = Describe("Postgres", func() {
 	})
 
 	It("saves a load balanced URL and retrieves it again", func() {
-		err := repository.SaveLoadBalancedURL(aLoadBalancedURL())
+		err := repository.SaveLoadBalancedURL(ctx, aLoadBalancedURL())
 		Expect(err).ToNot(HaveOccurred())
 
-		loadBalancedURL, err := repository.FindLoadBalancedURLByHash("12345678")
+		loadBalancedURL, err := repository.FindLoadBalancedURLByHash(ctx, "12345678")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(loadBalancedURL.Hash).To(Equal("12345678"))
 		Expect(loadBalancedURL.LongURLs).To(ConsistOf(
@@ -75,17 +79,17 @@ var _ = Describe("Postgres", func() {
 
 	Context("when the load balanced URL already exists in the database", func() {
 		It("doesn't return an error", func() {
-			err := repository.SaveLoadBalancedURL(aLoadBalancedURL())
+			err := repository.SaveLoadBalancedURL(ctx, aLoadBalancedURL())
 			Expect(err).ToNot(HaveOccurred())
 
-			err = repository.SaveLoadBalancedURL(aLoadBalancedURL())
+			err = repository.SaveLoadBalancedURL(ctx, aLoadBalancedURL())
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
 	Context("when the load balanced URL doesn't exist in the database", func() {
 		It("returns an error saying not found", func() {
-			loadBalancedURL, err := repository.FindLoadBalancedURLByHash("non_existing_hash")
+			loadBalancedURL, err := repository.FindLoadBalancedURLByHash(ctx, "non_existing_hash")
 
 			Expect(err).To(MatchError(url.ErrValidURLNotFound))
 			Expect(loadBalancedURL).To(BeNil())
@@ -97,17 +101,17 @@ var _ = Describe("Postgres", func() {
 			Hash: "12345678",
 			IP:   "192.168.1.1",
 		}
-		err := repository.SaveClick(click)
+		err := repository.SaveClick(ctx, click)
 		Expect(err).ToNot(HaveOccurred())
 
-		clicks, err := repository.FindClicksByHash(click.Hash)
+		clicks, err := repository.FindClicksByHash(ctx, click.Hash)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(clicks).To(ContainElement(click))
 	})
 
 	Context("when click information doesn't exist in the database", func() {
 		It("doesn't return an error", func() {
-			clicks, err := repository.FindClicksByHash("non_existing_hash")
+			clicks, err := repository.FindClicksByHash(ctx, "non_existing_hash")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clicks).To(BeEmpty())
 		})

@@ -1,6 +1,8 @@
 package url_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -13,9 +15,11 @@ var _ = Describe("Single URL shortener", func() {
 		shortener  *url.SingleURLShortener
 		repository url.ShortURLRepository
 		metrics    *FakeMetrics
+		ctx        context.Context
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		repository = inmemory.NewRepository()
 		metrics = &FakeMetrics{}
 		shortener = url.NewSingleURLShortener(repository, metrics)
@@ -24,7 +28,7 @@ var _ = Describe("Single URL shortener", func() {
 	Context("when providing a long URL", func() {
 		It("generates a hash", func() {
 			aLongURL := "https://google.com"
-			shortURL, err := shortener.HashFromURL(aLongURL)
+			shortURL, err := shortener.HashFromURL(ctx, aLongURL)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.Hash).To(HaveLen(8))
@@ -33,7 +37,7 @@ var _ = Describe("Single URL shortener", func() {
 
 		It("contains the real value from the original URL", func() {
 			aLongURL := "https://google.com"
-			shortURL, err := shortener.HashFromURL(aLongURL)
+			shortURL, err := shortener.HashFromURL(ctx, aLongURL)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.OriginalURL.URL).To(Equal(aLongURL))
@@ -42,10 +46,10 @@ var _ = Describe("Single URL shortener", func() {
 
 		Context("when providing different long URLs", func() {
 			It("generates different short URL hashes", func() {
-				shortGoogleURL, err := shortener.HashFromURL("https://google.com")
+				shortGoogleURL, err := shortener.HashFromURL(ctx, "https://google.com")
 				Expect(err).ToNot(HaveOccurred())
 
-				shortFacebookURL, err := shortener.HashFromURL("https://facebook.com")
+				shortFacebookURL, err := shortener.HashFromURL(ctx, "https://facebook.com")
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(shortGoogleURL.Hash).ToNot(Equal(shortFacebookURL.Hash))
@@ -54,19 +58,19 @@ var _ = Describe("Single URL shortener", func() {
 		})
 
 		It("stores the short URL in a repository", func() {
-			shortURL, err := shortener.HashFromURL("https://unizar.es")
+			shortURL, err := shortener.HashFromURL(ctx, "https://unizar.es")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedURLInRepo, err := repository.FindShortURLByHash(shortURL.Hash)
+			expectedURLInRepo, err := repository.FindShortURLByHash(ctx, shortURL.Hash)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(expectedURLInRepo.Hash).To(Equal(shortURL.Hash))
 		})
 
 		It("stores the URL as non verified", func() {
-			shortURL, err := shortener.HashFromURL("https://unizar.es")
+			shortURL, err := shortener.HashFromURL(ctx, "https://unizar.es")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedURLInRepo, err := repository.FindShortURLByHash(shortURL.Hash)
+			expectedURLInRepo, err := repository.FindShortURLByHash(ctx, shortURL.Hash)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(expectedURLInRepo.OriginalURL.IsValid).To(BeFalse())
 		})

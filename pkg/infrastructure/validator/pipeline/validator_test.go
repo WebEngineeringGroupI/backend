@@ -1,6 +1,7 @@
 package pipeline_test
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo"
@@ -14,15 +15,17 @@ var _ = Describe("Multiple Validator", func() {
 		validator    *pipeline.Validator
 		validatorOne *FakeValidator
 		validatorTwo *FakeValidator
+		ctx          context.Context
 	)
 	BeforeEach(func() {
+		ctx = context.Background()
 		validatorOne = &FakeValidator{valueToReturn: true}
 		validatorTwo = &FakeValidator{valueToReturn: true}
 		validator = pipeline.NewValidator(validatorOne, validatorTwo)
 	})
 
 	It("executes all validators in the pipeline", func() {
-		validURLs, err := validator.ValidateURLs([]string{"google.com"})
+		validURLs, err := validator.ValidateURLs(ctx, []string{"google.com"})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(validURLs).To(BeTrue())
@@ -33,7 +36,7 @@ var _ = Describe("Multiple Validator", func() {
 	Context("when the first validator in the pipeline fails to validate", func() {
 		It("stops the validation and the second is not executed due to invalid URL", func() {
 			validatorOne.shouldReturn(false)
-			validURLs, err := validator.ValidateURLs([]string{"google.com"})
+			validURLs, err := validator.ValidateURLs(ctx, []string{"google.com"})
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(validURLs).To(BeFalse())
@@ -42,7 +45,7 @@ var _ = Describe("Multiple Validator", func() {
 		})
 		It("stops the validation and the second is not executed due to error in execution", func() {
 			validatorOne.shouldErrorWith(errors.New("unknown error"))
-			validURLs, err := validator.ValidateURLs([]string{"google.com"})
+			validURLs, err := validator.ValidateURLs(ctx, []string{"google.com"})
 
 			Expect(err).To(MatchError("unknown error"))
 			Expect(validURLs).To(BeFalse())
@@ -54,7 +57,7 @@ var _ = Describe("Multiple Validator", func() {
 	Context("when the second validator in the pipeline fails to validate", func() {
 		It("returns the result of the second validator", func() {
 			validatorTwo.shouldReturn(false)
-			validURLs, err := validator.ValidateURLs([]string{"google.com"})
+			validURLs, err := validator.ValidateURLs(ctx, []string{"google.com"})
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(validURLs).To(BeFalse())
@@ -63,7 +66,7 @@ var _ = Describe("Multiple Validator", func() {
 		})
 		It("stops the validation and due to error in execution", func() {
 			validatorTwo.shouldErrorWith(errors.New("unknown error"))
-			validURLs, err := validator.ValidateURLs([]string{"google.com"})
+			validURLs, err := validator.ValidateURLs(ctx, []string{"google.com"})
 
 			Expect(err).To(MatchError("unknown error"))
 			Expect(validURLs).To(BeFalse())
@@ -90,7 +93,7 @@ func (f *FakeValidator) shouldErrorWith(err error) {
 	f.errorToReturn = err
 }
 
-func (f *FakeValidator) ValidateURLs(url []string) (bool, error) {
+func (f *FakeValidator) ValidateURLs(ctx context.Context, url []string) (bool, error) {
 	f.hasBeenCalled = true
 	return f.valueToReturn, f.errorToReturn
 }

@@ -1,6 +1,7 @@
 package url
 
 import (
+	"context"
 	"errors"
 )
 
@@ -9,6 +10,6 @@ var (
 )
 
 type ShortURLRepository interface {
-	FindShortURLByHash(hash string) (*ShortURL, error)
-	SaveShortURL(url *ShortURL) error
+	FindShortURLByHash(ctx context.Context, hash string) (*ShortURL, error)
+	SaveShortURL(ctx context.Context, url *ShortURL) error
 }

@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -12,23 +13,29 @@ import (
 )
 
 var _ = Describe("Schema Validator", func() {
+	var (
+		ctx context.Context
+	)
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
 	It("validates a URL that contains the http schema", func() {
 		validator := schema.NewValidator("http", "https")
-		isValid, err := validator.ValidateURLs([]string{"http://google.com"})
+		isValid, err := validator.ValidateURLs(ctx, []string{"http://google.com"})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeTrue())
 	})
 	It("validates a URL that contains the https schema", func() {
 		validator := schema.NewValidator("http", "https")
-		isValid, err := validator.ValidateURLs([]string{"https://google.com"})
+		isValid, err := validator.ValidateURLs(ctx, []string{"https://google.com"})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeTrue())
 	})
 	It("fails to validate a URL that contains the ftp schema", func() {
 		validator := schema.NewValidator("http", "https")
-		isValid, err := validator.ValidateURLs([]string{"ftp://google.com"})
+		isValid, err := validator.ValidateURLs(ctx, []string{"ftp://google.com"})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeFalse())
@@ -36,7 +43,7 @@ var _ = Describe("Schema Validator", func() {
 	It("validates a random schema", func() {
 		randomSchema := randomStringOfLength(5)
 		validator := schema.NewValidator(randomSchema)
-		isValid, err := validator.ValidateURLs([]string{fmt.Sprintf("%s://google.com", randomSchema)})
+		isValid, err := validator.ValidateURLs(ctx, []string{fmt.Sprintf("%s://google.com", randomSchema)})
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(isValid).To(BeTrue())

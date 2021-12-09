@@ -1,6 +1,7 @@
 package url_test
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo"
@@ -16,9 +17,11 @@ var _ = Describe("Multiple URL Shortener", func() {
 		repository url.ShortURLRepository
 		formatter  *FakeFormatter
 		metrics    *FakeMetrics
+		ctx        context.Context
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		repository = inmemory.NewRepository()
 		formatter = &FakeFormatter{}
 		metrics = &FakeMetrics{}
@@ -28,7 +31,7 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 	Context("when providing multiple long URLs", func() {
 		It("generates a hash for each one", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURLs).To(HaveLen(2))
@@ -38,7 +41,7 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 
 		It("contains the real values from the original URLs", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(metrics.fileURLMetrics).To(Equal(1))
@@ -47,7 +50,7 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 
 		It("saves the URLs as not verified", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURLs[0].OriginalURL.IsValid).To(BeFalse())
@@ -55,7 +58,7 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 
 		It("generates different short URL hashes for each of the long URLs", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(metrics.fileURLMetrics).To(Equal(1))
@@ -65,7 +68,7 @@ var _ = Describe("Multiple URL Shortener", func() {
 		Context("but the provided data is not valid", func() {
 			It("returns the error since it's unable to transform the data", func() {
 				formatter.shouldReturnError(errors.New("unknown error"))
-				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+				shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 				Expect(err).To(MatchError("unknown error"))
 				Expect(shortURLs).To(BeNil())
@@ -74,12 +77,12 @@ var _ = Describe("Multiple URL Shortener", func() {
 		})
 
 		It("stores the short URL in a repository", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 			Expect(err).ToNot(HaveOccurred())
 
-			firstURL, err := repository.FindShortURLByHash(shortURLs[0].Hash)
+			firstURL, err := repository.FindShortURLByHash(ctx, shortURLs[0].Hash)
 			Expect(err).ToNot(HaveOccurred())
-			secondURL, err := repository.FindShortURLByHash(shortURLs[1].Hash)
+			secondURL, err := repository.FindShortURLByHash(ctx, shortURLs[1].Hash)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(firstURL.Hash).To(Equal(shortURLs[0].Hash))

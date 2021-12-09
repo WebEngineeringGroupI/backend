@@ -1,6 +1,7 @@
 package url
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,8 +16,8 @@ var (
 const maxNumberOfURLsToLoadBalance = 10
 
 type LoadBalancedURLsRepository interface {
-	FindLoadBalancedURLByHash(hash string) (*LoadBalancedURL, error)
-	SaveLoadBalancedURL(urls *LoadBalancedURL) error
+	FindLoadBalancedURLByHash(ctx context.Context, hash string) (*LoadBalancedURL, error)
+	SaveLoadBalancedURL(ctx context.Context, urls *LoadBalancedURL) error
 }
 
 type LoadBalancer struct {
@@ -28,7 +29,7 @@ type LoadBalancedURL struct {
 	LongURLs []OriginalURL
 }
 
-func (b *LoadBalancer) ShortURLs(urls []string) (*LoadBalancedURL, error) {
+func (b *LoadBalancer) ShortURLs(ctx context.Context, urls []string) (*LoadBalancedURL, error) {
 	if len(urls) == 0 {
 		return nil, ErrNoURLsSpecified
 	}
@@ -41,7 +42,7 @@ func (b *LoadBalancer) ShortURLs(urls []string) (*LoadBalancedURL, error) {
 		LongURLs: originalURLsFromRaw(urls),
 	}
 
-	err := b.repository.SaveLoadBalancedURL(multipleShortURLs)
+	err := b.repository.SaveLoadBalancedURL(ctx, multipleShortURLs)
 	if err != nil {
 		return nil, fmt.Errorf("error saving load-balanced URLs into repository: %w", err)
 	}

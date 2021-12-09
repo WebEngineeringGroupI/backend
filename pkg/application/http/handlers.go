@@ -38,7 +38,7 @@ func (e *HandlerRepository) shortener() http.HandlerFunc {
 			return
 		}
 
-		shortURL, err := urlShortener.HashFromURL(dataIn.URL)
+		shortURL, err := urlShortener.HashFromURL(request.Context(), dataIn.URL)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) {
 			log.Print(err.Error())
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -78,7 +78,7 @@ func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
 			return
 		}
 
-		shortURL, err := loadBalancerCreator.ShortURLs(dataIn.URLs)
+		shortURL, err := loadBalancerCreator.ShortURLs(request.Context(), dataIn.URLs)
 		if errors.Is(err, url.ErrNoURLsSpecified) {
 			log.Print(err.Error())
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -113,7 +113,7 @@ func (e *HandlerRepository) redirector() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		shortURLHash := e.variableExtractor.Extract(request, "hash")
 
-		originalURL, err := redirector.ReturnOriginalURL(shortURLHash)
+		originalURL, err := redirector.ReturnOriginalURL(request.Context(), shortURLHash)
 		if errors.Is(err, url.ErrShortURLNotFound) {
 			writer.WriteHeader(http.StatusNotFound)
 			return
@@ -133,7 +133,7 @@ func (e *HandlerRepository) loadBalancingRedirector() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		hash := e.variableExtractor.Extract(request, "hash")
 
-		originalURL, err := redirector.ReturnAValidOriginalURL(hash)
+		originalURL, err := redirector.ReturnAValidOriginalURL(request.Context(), hash)
 		if errors.Is(err, url.ErrValidURLNotFound) {
 			writer.WriteHeader(http.StatusNotFound)
 			return
@@ -158,7 +158,7 @@ func (e *HandlerRepository) csvShortener() http.HandlerFunc {
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		data := []byte(request.FormValue("file"))
-		shortURLs, err := csvShortener.HashesFromURLData(data)
+		shortURLs, err := csvShortener.HashesFromURLData(request.Context(), data)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) || errors.Is(err, url.ErrUnableToConvertDataToLongURLs) {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return

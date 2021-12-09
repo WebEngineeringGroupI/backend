@@ -1,6 +1,7 @@
 package redirect
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -11,8 +12,8 @@ type Redirector struct {
 	repository url.ShortURLRepository
 }
 
-func (r *Redirector) ReturnOriginalURL(hash string) (string, error) {
-	shortURL, err := r.repository.FindShortURLByHash(hash)
+func (r *Redirector) ReturnOriginalURL(ctx context.Context, hash string) (string, error) {
+	shortURL, err := r.repository.FindShortURLByHash(ctx, hash)
 	if errors.Is(err, url.ErrShortURLNotFound) {
 		return "", err
 	}

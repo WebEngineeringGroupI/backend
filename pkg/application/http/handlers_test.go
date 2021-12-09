@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 	"math/rand"
@@ -22,10 +23,12 @@ var _ = Describe("Application / HTTP", func() {
 		shortURLRepository         url.ShortURLRepository
 		loadBalancerURLsRepository url.LoadBalancedURLsRepository
 		metrics                    *FakeMetrics
+		ctx                        context.Context
 	)
 	BeforeEach(func() {
 		rand.Seed(GinkgoRandomSeed())
 		log.Default().SetOutput(GinkgoWriter)
+		ctx = context.Background()
 		inmemoryRepository := inmemory.NewRepository()
 		shortURLRepository = inmemoryRepository
 		loadBalancerURLsRepository = inmemoryRepository
@@ -45,7 +48,7 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
 			Expect(response).To(HaveHTTPBody(MatchJSON(longURLResponse())))
 
-			shortURL, err := shortURLRepository.FindShortURLByHash("lxqrJ9xF")
+			shortURL, err := shortURLRepository.FindShortURLByHash(ctx, "lxqrJ9xF")
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.OriginalURL.URL).To(Equal("https://google.es"))
@@ -68,7 +71,7 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response.StatusCode).To(Equal(gohttp.StatusOK))
 			Expect(response).To(HaveHTTPBody(MatchJSON(loadBalancerURLResponse())))
 
-			loadBalancedURL, err := loadBalancerURLsRepository.FindLoadBalancedURLByHash("5XEOqhb0")
+			loadBalancedURL, err := loadBalancerURLsRepository.FindLoadBalancedURLByHash(ctx, "5XEOqhb0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(loadBalancedURL.LongURLs).To(ConsistOf(
 				url.OriginalURL{URL: "https://google.es"},
@@ -98,7 +101,7 @@ var _ = Describe("Application / HTTP", func() {
 	Context("when it receives an HTTP request for a redirection", func() {
 		Context("and the URL is present in the repository", func() {
 			It("responds with a URL redirect", func() {
-				_ = shortURLRepository.SaveShortURL(&url.ShortURL{
+				_ = shortURLRepository.SaveShortURL(ctx, &url.ShortURL{
 					Hash:        "123456",
 					OriginalURL: url.OriginalURL{URL: "https://google.com", IsValid: true},
 				})
@@ -121,7 +124,7 @@ var _ = Describe("Application / HTTP", func() {
 	Context("when it receives an HTTP request for a load-balancing redirection", func() {
 		Context("and the URL is present in the repository", func() {
 			It("responds with a URL redirect", func() {
-				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(ctx, &url.LoadBalancedURL{
 					Hash: "123456",
 					LongURLs: []url.OriginalURL{
 						{URL: "https://google.com", IsValid: true},
@@ -137,7 +140,7 @@ var _ = Describe("Application / HTTP", func() {
 		})
 		Context("and there are multiple valid URLs", func() {
 			It("responds with a different URL each time", func() {
-				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(ctx, &url.LoadBalancedURL{
 					Hash: "123456",
 					LongURLs: []url.OriginalURL{
 						{URL: "https://google.com", IsValid: true},
@@ -156,7 +159,7 @@ var _ = Describe("Application / HTTP", func() {
 
 		Context("but the URL does not have any original valid URL", func() {
 			It("returns a 404 error", func() {
-				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(&url.LoadBalancedURL{
+				_ = loadBalancerURLsRepository.SaveLoadBalancedURL(ctx, &url.LoadBalancedURL{
 					Hash: "123456",
 					LongURLs: []url.OriginalURL{
 						{URL: "https://google.com", IsValid: false},
@@ -187,9 +190,9 @@ var _ = Describe("Application / HTTP", func() {
 			Expect(response.Header.Get("Location")).To(Equal("google.com"))
 			Expect(response).To(HaveHTTPBody(Equal(csvFileResponse())))
 
-			firstURL, err := shortURLRepository.FindShortURLByHash("uuqVS5Vz")
+			firstURL, err := shortURLRepository.FindShortURLByHash(ctx, "uuqVS5Vz")
 			Expect(err).ToNot(HaveOccurred())
-			secondURL, err := shortURLRepository.FindShortURLByHash("1+IiyNe6")
+			secondURL, err := shortURLRepository.FindShortURLByHash(ctx, "1+IiyNe6")
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(firstURL.OriginalURL.URL).To(Equal("google.com"))

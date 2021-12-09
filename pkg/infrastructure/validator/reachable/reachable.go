@@ -20,14 +20,14 @@ type invalidURL struct {
 	err error
 }
 
-func (v *Validator) ValidateURLs(urls []string) (bool, error) {
+func (v *Validator) ValidateURLs(ctx context.Context, urls []string) (bool, error) {
 	validURLCh := make(chan string, len(urls))
 	invalidURLCh := make(chan invalidURL, len(urls))
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(urls))
 	for _, url := range urls {
-		go v.validateURL(url, wg, validURLCh, invalidURLCh)
+		go v.validateURL(ctx, url, wg, validURLCh, invalidURLCh)
 	}
 	wg.Wait()
 
@@ -41,10 +41,10 @@ func (v *Validator) ValidateURLs(urls []string) (bool, error) {
 	return true, nil
 }
 
-func (v *Validator) validateURL(url string, wg *sync.WaitGroup, validURLCh chan<- string, invalidURLCh chan<- invalidURL) {
+func (v *Validator) validateURL(ctx context.Context, url string, wg *sync.WaitGroup, validURLCh chan<- string, invalidURLCh chan<- invalidURL) {
 	defer wg.Done()
 
-	ctx, cancel := context.WithTimeout(context.Background(), v.maxTimeout)
+	ctx, cancel := context.WithTimeout(ctx, v.maxTimeout)
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

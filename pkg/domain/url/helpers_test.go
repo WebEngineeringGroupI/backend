@@ -1,6 +1,8 @@
 package url_test
 
 import (
+	"context"
+
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
@@ -48,7 +50,7 @@ func (f *FakeLoadBalancedURLsRepository) shouldReturnError(err error) {
 	f.errorToReturn = err
 }
 
-func (f *FakeLoadBalancedURLsRepository) SaveLoadBalancedURL(urls *url.LoadBalancedURL) error {
+func (f *FakeLoadBalancedURLsRepository) SaveLoadBalancedURL(ctx context.Context, urls *url.LoadBalancedURL) error {
 	if f.errorToReturn != nil {
 		return f.errorToReturn
 	}
@@ -57,6 +59,6 @@ func (f *FakeLoadBalancedURLsRepository) SaveLoadBalancedURL(urls *url.LoadBalan
 	return nil
 }
 
-func (f *FakeLoadBalancedURLsRepository) FindLoadBalancedURLByHash(hash string) (*url.LoadBalancedURL, error) {
+func (f *FakeLoadBalancedURLsRepository) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {
 	panic("implement me")
 }

@@ -1,6 +1,7 @@
 package safebrowsing
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/safebrowsing"
@@ -12,8 +13,8 @@ type Validator struct {
 	safebrowser *safebrowsing.SafeBrowser
 }
 
-func (s *Validator) ValidateURLs(urls []string) (bool, error) {
-	threats, err := s.safebrowser.LookupURLs(urls)
+func (s *Validator) ValidateURLs(ctx context.Context, urls []string) (bool, error) {
+	threats, err := s.safebrowser.LookupURLsContext(ctx, urls)
 	if err != nil {
 		return false, fmt.Errorf("%w: %s", url.ErrUnableToValidateURLs, err)
 	}
