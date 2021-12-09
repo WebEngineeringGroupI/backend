@@ -4,7 +4,9 @@ go 1.17
 
 require (
 	github.com/WebEngineeringGroupI/genproto-go v0.0.0-20211125093943-845fdfc7faa2
+	github.com/golang/mock v1.6.0
 	github.com/google/safebrowsing v0.0.0-20190624211811-bbf0d20d26b3
+	github.com/google/uuid v1.1.2
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.10.2
 	github.com/onsi/ginkgo v1.16.5

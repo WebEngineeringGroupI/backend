@@ -2,10 +2,17 @@
 build: deps
 	go build -v ./...
 
+generate: deps clean
+	go generate -x ./...
+
+clean:
+	find -name "mocks" -type d | xargs rm -rf
+
 deps:
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/onsi/ginkgo/ginkgo@v1
+	go install github.com/golang/mock/mockgen@v1.6.0
 
 migrate-db: deps
 	migrate -path ./database/migrate/ -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
@@ -24,10 +31,10 @@ fmt:
 lint: deps
 	golangci-lint run --timeout 1h
 
-test-unit: deps
+test-unit: generate
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -skipPackage ./pkg/infrastructure
 
-test-integration: run-db deps
+test-integration: run-db generate
 	sleep 10 # Give some time to DB to be launched
 	$(MAKE) migrate-db
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -p ./pkg/infrastructure

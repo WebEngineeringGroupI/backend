@@ -6,11 +6,17 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 )
 
 type SingleURLShortener struct {
 	repository ShortURLRepository
 	metrics    Metrics
+	outbox     domain.EventOutbox
+	clock      Clock
+	uuid       UUID
 }
 
 type OriginalURL struct {
@@ -44,6 +50,11 @@ func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
+	err = s.outbox.SaveEvent(ctx, NewShortURLCreated(shortURL))
+	if err != nil {
+		return nil, fmt.Errorf("unable to save domain event: %w", err)
+	}
+
 	return shortURL, nil
 }
 
@@ -54,9 +65,21 @@ func hashFromURL(aLongURL string) string {
 	return hash
 }
 
-func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics) *SingleURLShortener {
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
+type Clock interface {
+	Now() time.Time
+}
+
+type UUID interface {
+	New() string
+}
+
+func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics, outbox domain.EventOutbox, clock Clock, uuid UUID) *SingleURLShortener {
 	return &SingleURLShortener{
 		repository: repository,
 		metrics:    metrics,
+		outbox:     outbox,
+		clock:      clock,
+		uuid:       uuid,
 	}
 }
