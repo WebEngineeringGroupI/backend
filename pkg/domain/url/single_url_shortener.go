@@ -34,7 +34,7 @@ func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
 		Hash: hashFromURL(aLongURL),
 		OriginalURL: OriginalURL{
 			URL:     aLongURL,
-			IsValid: true,
+			IsValid: false,
 		},
 	}
 

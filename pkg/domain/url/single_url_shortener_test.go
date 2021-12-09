@@ -62,6 +62,15 @@ var _ = Describe("Single URL shortener", func() {
 			Expect(expectedURLInRepo.Hash).To(Equal(shortURL.Hash))
 		})
 
+		It("stores the URL as non verified", func() {
+			shortURL, err := shortener.HashFromURL("https://unizar.es")
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedURLInRepo, err := repository.FindShortURLByHash(shortURL.Hash)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(expectedURLInRepo.OriginalURL.IsValid).To(BeFalse())
+		})
+
 		// TODO(german): Each time a new hash is generated, do we need to check if it already exists?
 		// TODO(german): What's the meaning of Safe and Sponsor in the original urlshortener implementation
 	})

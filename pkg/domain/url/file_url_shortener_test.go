@@ -46,6 +46,14 @@ var _ = Describe("Multiple URL Shortener", func() {
 			Expect(shortURLs[1].OriginalURL.URL).To(Equal("https://unizar.es"))
 		})
 
+		It("saves the URLs as not verified", func() {
+			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(shortURLs[0].OriginalURL.IsValid).To(BeFalse())
+			Expect(shortURLs[1].OriginalURL.IsValid).To(BeFalse())
+		})
+
 		It("generates different short URL hashes for each of the long URLs", func() {
 			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
 

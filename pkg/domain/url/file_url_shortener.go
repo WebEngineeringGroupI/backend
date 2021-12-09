@@ -32,7 +32,7 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 			Hash: hashFromURL(longURL),
 			OriginalURL: OriginalURL{
 				URL:     longURL,
-				IsValid: true,
+				IsValid: false,
 			},
 		}
 
