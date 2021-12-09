@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
@@ -61,13 +62,14 @@ type Config struct {
 	BaseDomain         string
 	ShortURLRepository url.ShortURLRepository
 	CustomMetrics      url.Metrics
+	EventOutbox        domain.EventOutbox
 }
 
 func NewServer(config Config) *grpc.Server {
 	grpcServer := grpc.NewServer()
 	srv := &server{
 		baseDomain:   config.BaseDomain,
-		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics),
+		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics, config.EventOutbox),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)

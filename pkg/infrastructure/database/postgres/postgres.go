@@ -22,13 +22,13 @@ type ConnectionDetails struct {
 	SSLMode  string
 }
 
-type DB struct {
-	engine *xorm.Engine
+type DBSession struct {
+	session *xorm.Session
 }
 
-func (d *DB) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {
+func (d *DBSession) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {
 	var result model.LoadBalancedUrlList
-	err := d.engine.Context(ctx).Find(&result, &model.LoadBalancedUrl{Hash: hash})
+	err := d.session.Context(ctx).Find(&result, &model.LoadBalancedUrl{Hash: hash})
 	if len(result) == 0 {
 		return nil, url.ErrValidURLNotFound // FIXME(fede): Should we use another kind of error here?
 	}
@@ -39,9 +39,9 @@ func (d *DB) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.L
 	return model.LoadBalancedURLToDomain(result), nil
 }
 
-func (d *DB) SaveLoadBalancedURL(ctx context.Context, aURL *url.LoadBalancedURL) error {
+func (d *DBSession) SaveLoadBalancedURL(ctx context.Context, aURL *url.LoadBalancedURL) error {
 	dbURL := model.LoadBalancedURLFromDomain(aURL)
-	_, err := d.engine.Context(ctx).Insert(&dbURL)
+	_, err := d.session.Context(ctx).Insert(&dbURL)
 
 	var pqError *pq.Error
 	if errors.As(err, &pqError) {
@@ -60,9 +60,9 @@ var (
 	errDuplicateConstraintViolation pq.ErrorCode = "23505"
 )
 
-func (d *DB) SaveShortURL(ctx context.Context, url *url.ShortURL) error {
+func (d *DBSession) SaveShortURL(ctx context.Context, url *url.ShortURL) error {
 	shortURL := model.ShortURLFromDomain(url)
-	_, err := d.engine.Context(ctx).Insert(&shortURL)
+	_, err := d.session.Context(ctx).Insert(&shortURL)
 
 	var pqError *pq.Error
 	if errors.As(err, &pqError) {
@@ -76,9 +76,9 @@ func (d *DB) SaveShortURL(ctx context.Context, url *url.ShortURL) error {
 	return nil
 }
 
-func (d *DB) FindShortURLByHash(ctx context.Context, hash string) (*url.ShortURL, error) {
+func (d *DBSession) FindShortURLByHash(ctx context.Context, hash string) (*url.ShortURL, error) {
 	shortURL := model.Shorturl{Hash: hash}
-	exists, err := d.engine.Context(ctx).Get(&shortURL)
+	exists, err := d.session.Context(ctx).Get(&shortURL)
 	if !exists {
 		return nil, url.ErrShortURLNotFound
 	}
@@ -89,18 +89,18 @@ func (d *DB) FindShortURLByHash(ctx context.Context, hash string) (*url.ShortURL
 	return model.ShortURLToDomain(shortURL), nil
 }
 
-func (d *DB) SaveClick(ctx context.Context, click *click.Details) error {
+func (d *DBSession) SaveClick(ctx context.Context, click *click.Details) error {
 	clickModel := model.ClickDetailsFromDomain(click)
-	_, err := d.engine.Context(ctx).Insert(&clickModel)
+	_, err := d.session.Context(ctx).Insert(&clickModel)
 	if err != nil {
 		return fmt.Errorf("unknow error saving click: %w", err)
 	}
 	return nil
 }
 
-func (d *DB) FindClicksByHash(ctx context.Context, hash string) ([]*click.Details, error) {
+func (d *DBSession) FindClicksByHash(ctx context.Context, hash string) ([]*click.Details, error) {
 	var clicksModel []*model.Clickdetails
-	err := d.engine.Find(&clicksModel, model.Clickdetails{Hash: hash})
+	err := d.session.Context(ctx).Find(&clicksModel, model.Clickdetails{Hash: hash})
 	if err != nil {
 		return nil, fmt.Errorf("unknow error finding clicks by hash: %w", err)
 	}
@@ -109,6 +109,18 @@ func (d *DB) FindClicksByHash(ctx context.Context, hash string) ([]*click.Detail
 		clicks = append(clicks, model.ClickDetailsToDomain(clickModel))
 	}
 	return clicks, nil
+}
+
+func (d *DBSession) Close() error {
+	return d.session.Close()
+}
+
+func newDBSession(session *xorm.Session) *DBSession {
+	return &DBSession{session: session}
+}
+
+type DB struct {
+	engine *xorm.Engine
 }
 
 func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
@@ -128,4 +140,28 @@ func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
 	return &DB{
 		engine: engine,
 	}, nil
+}
+
+func (t *DB) Transactional(f func(*DBSession) (interface{}, error)) (interface{}, error) {
+	session := t.engine.NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return nil, err
+	}
+
+	result, err := f(newDBSession(session))
+	if err != nil {
+		return result, err
+	}
+
+	if err := session.Commit(); err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
+func (t *DB) Session() *DBSession {
+	return newDBSession(t.engine.NewSession())
 }

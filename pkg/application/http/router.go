@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
@@ -15,6 +16,7 @@ type Config struct {
 	ShortURLRepository         url.ShortURLRepository
 	CustomMetrics              url.Metrics
 	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
+	EventOutbox                domain.EventOutbox
 }
 
 func NewRouter(config Config) http.Handler {

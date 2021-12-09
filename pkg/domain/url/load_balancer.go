@@ -15,6 +15,7 @@ var (
 
 const maxNumberOfURLsToLoadBalance = 10
 
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type LoadBalancedURLsRepository interface {
 	FindLoadBalancedURLByHash(ctx context.Context, hash string) (*LoadBalancedURL, error)
 	SaveLoadBalancedURL(ctx context.Context, urls *LoadBalancedURL) error

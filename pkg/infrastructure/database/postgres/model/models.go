@@ -20,6 +20,7 @@ type Clickdetails struct {
 }
 
 //revive:disable:var-naming
+
 type LoadBalancedUrlList []LoadBalancedUrl
 
 type LoadBalancedUrl struct {
@@ -31,3 +32,9 @@ type LoadBalancedUrl struct {
 }
 
 //revive:enable:var-naming
+
+type DomainEvent struct {
+	ID        string    `xorm:"'id'"`
+	Payload   []byte    `xorm:"'payload'"`
+	CreatedAt time.Time `xorm:"created"`
+}

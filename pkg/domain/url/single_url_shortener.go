@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 )
@@ -15,8 +14,6 @@ type SingleURLShortener struct {
 	repository ShortURLRepository
 	metrics    Metrics
 	outbox     domain.EventOutbox
-	clock      Clock
-	uuid       UUID
 }
 
 type OriginalURL struct {
@@ -65,21 +62,10 @@ func hashFromURL(aLongURL string) string {
 	return hash
 }
 
-//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
-type Clock interface {
-	Now() time.Time
-}
-
-type UUID interface {
-	New() string
-}
-
-func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics, outbox domain.EventOutbox, clock Clock, uuid UUID) *SingleURLShortener {
+func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics, outbox domain.EventOutbox) *SingleURLShortener {
 	return &SingleURLShortener{
 		repository: repository,
 		metrics:    metrics,
 		outbox:     outbox,
-		clock:      clock,
-		uuid:       uuid,
 	}
 }

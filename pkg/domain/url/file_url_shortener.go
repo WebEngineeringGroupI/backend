@@ -8,6 +8,7 @@ import (
 
 var ErrUnableToConvertDataToLongURLs = errors.New("unable to convert data to long urls")
 
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Formatter interface {
 	FormatDataToURLs(data []byte) ([]string, error)
 }

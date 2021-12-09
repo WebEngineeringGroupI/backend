@@ -3,7 +3,6 @@ package url_test
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -20,25 +19,20 @@ var _ = Describe("Single URL shortener", func() {
 		controller *gomock.Controller
 		shortener  *url.SingleURLShortener
 		repository url.ShortURLRepository
-		metrics    *FakeMetrics
-		clock      *mocks.MockClock
-		uuid       *mocks.MockUUID
+		metrics    *mocks.MockMetrics
 		outbox     *domainmocks.MockEventOutbox
 		ctx        context.Context
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		controller = gomock.NewController(GinkgoT())
-		clock = mocks.NewMockClock(controller)
-		uuid = mocks.NewMockUUID(controller)
-		outbox = domainmocks.NewMockEventOutbox(controller)
 		repository = inmemory.NewRepository()
-		metrics = &FakeMetrics{}
-		shortener = url.NewSingleURLShortenerToTest(repository, metrics, outbox, clock, uuid)
 
-		clock.EXPECT().Now().Return(time.Time{}).AnyTimes()
-		uuid.EXPECT().New().Return("aUUID").AnyTimes()
+		controller = gomock.NewController(GinkgoT())
+		outbox = domainmocks.NewMockEventOutbox(controller)
+		metrics = mocks.NewMockMetrics(controller)
+
+		shortener = url.NewSingleURLShortener(repository, metrics, outbox)
 	})
 
 	AfterEach(func() {
@@ -51,25 +45,24 @@ var _ = Describe("Single URL shortener", func() {
 		})
 
 		It("generates a hash", func() {
-			aLongURL := "https://google.com"
-			shortURL, err := shortener.HashFromURL(ctx, aLongURL)
+			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
+			shortURL, err := shortener.HashFromURL(ctx, "https://google.com")
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURL.Hash).To(Equal("cv6VxVdu"))
-			Expect(metrics.singleURLMetrics).To(Equal(1))
 		})
 
 		It("contains the real value from the original URL", func() {
-			aLongURL := "https://google.com"
-			shortURL, err := shortener.HashFromURL(ctx, aLongURL)
+			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
+			shortURL, err := shortener.HashFromURL(ctx, "https://google.com")
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(shortURL.OriginalURL.URL).To(Equal(aLongURL))
-			Expect(metrics.singleURLMetrics).To(Equal(1))
+			Expect(shortURL.OriginalURL.URL).To(Equal("https://google.com"))
 		})
 
 		Context("when providing different long URLs", func() {
 			It("generates different short URL hashes", func() {
+				metrics.EXPECT().RecordSingleURLMetrics().Times(2)
 				shortGoogleURL, err := shortener.HashFromURL(ctx, "https://google.com")
 				Expect(err).ToNot(HaveOccurred())
 
@@ -77,11 +70,11 @@ var _ = Describe("Single URL shortener", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(shortGoogleURL.Hash).ToNot(Equal(shortFacebookURL.Hash))
-				Expect(metrics.singleURLMetrics).To(Equal(2))
 			})
 		})
 
 		It("stores the short URL in a repository", func() {
+			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
 			shortURL, err := shortener.HashFromURL(ctx, "https://unizar.es")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -91,6 +84,7 @@ var _ = Describe("Single URL shortener", func() {
 		})
 
 		It("stores the URL as non verified", func() {
+			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
 			shortURL, err := shortener.HashFromURL(ctx, "https://unizar.es")
 			Expect(err).ToNot(HaveOccurred())
 
@@ -104,6 +98,7 @@ var _ = Describe("Single URL shortener", func() {
 	})
 
 	It("should emit an event saved to the outbox", func() {
+		metrics.EXPECT().RecordSingleURLMetrics().Times(1)
 		outbox.EXPECT().SaveEvent(gomock.Any(), url.NewShortURLCreated(&url.ShortURL{
 			Hash: "cv6VxVdu",
 			OriginalURL: url.OriginalURL{
@@ -118,6 +113,7 @@ var _ = Describe("Single URL shortener", func() {
 
 	Context("when the event cannot be stored", func() {
 		It("should return the error", func() {
+			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
 			outbox.EXPECT().SaveEvent(gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
 			shortURL, err := shortener.HashFromURL(ctx, "https://google.com")
 

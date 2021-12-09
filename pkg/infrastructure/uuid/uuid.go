@@ -8,5 +8,5 @@ type UUID struct {
 }
 
 func (U *UUID) New() string {
-	panic("implement me")
+	return uuid.New().String()
 }

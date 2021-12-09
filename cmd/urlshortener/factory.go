@@ -16,10 +16,8 @@ import (
 )
 
 type factory struct {
-	shortURLRepositorySingleton         url.ShortURLRepository
-	metricsSingleton                    url.Metrics
-	loadBalancedURLsRepositorySingleton url.LoadBalancedURLsRepository
-	postgresDBSingleton                 *postgres.DB
+	metricsSingleton    url.Metrics
+	postgresDBSingleton *postgres.DBSession
 }
 
 func (f *factory) NewHTTPRouter() gohttp.Handler {
@@ -33,17 +31,19 @@ func (f *factory) NewGRPCServer() *gogrpc.Server {
 func (f *factory) httpConfig() http.Config {
 	return http.Config{
 		BaseDomain:                 f.baseDomain(),
-		ShortURLRepository:         f.shortURLRepository(),
 		CustomMetrics:              f.customMetrics(),
-		LoadBalancedURLsRepository: f.loadBalancedURLsRepository(),
+		ShortURLRepository:         f.newPostgresDB(),
+		LoadBalancedURLsRepository: f.newPostgresDB(),
+		EventOutbox:                f.newPostgresDB(),
 	}
 }
 
 func (f *factory) grpcConfig() grpc.Config {
 	return grpc.Config{
 		BaseDomain:         f.baseDomain(),
-		ShortURLRepository: f.shortURLRepository(),
+		ShortURLRepository: f.newPostgresDB(),
 		CustomMetrics:      f.customMetrics(),
+		EventOutbox:        f.newPostgresDB(),
 	}
 }
 
@@ -60,13 +60,6 @@ func (f *factory) baseDomain() string {
 		return "http://localhost:8080"
 	}
 	return baseDomain
-}
-
-func (f *factory) shortURLRepository() url.ShortURLRepository {
-	if f.shortURLRepositorySingleton == nil {
-		f.shortURLRepositorySingleton = f.newPostgresDB()
-	}
-	return f.shortURLRepositorySingleton
 }
 
 func (f *factory) postgresConnectionDetails() postgres.ConnectionDetails {
@@ -93,20 +86,13 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 	return value
 }
 
-func (f *factory) loadBalancedURLsRepository() url.LoadBalancedURLsRepository {
-	if f.loadBalancedURLsRepositorySingleton == nil {
-		f.loadBalancedURLsRepositorySingleton = f.newPostgresDB()
-	}
-	return f.loadBalancedURLsRepositorySingleton
-}
-
-func (f *factory) newPostgresDB() *postgres.DB {
+func (f *factory) newPostgresDB() *postgres.DBSession {
 	if f.postgresDBSingleton == nil {
 		db, err := postgres.NewDB(f.postgresConnectionDetails())
 		if err != nil {
 			log.Fatalf("unable to create the database connection: %s", err)
 		}
-		f.postgresDBSingleton = db
+		f.postgresDBSingleton = db.Session()
 	}
 	return f.postgresDBSingleton
 }

@@ -24,7 +24,7 @@ type VariableExtractor interface {
 }
 
 func (e *HandlerRepository) shortener() http.HandlerFunc {
-	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics)
+	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics, e.config.EventOutbox)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn

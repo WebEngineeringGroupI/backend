@@ -5,26 +5,41 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 )
 
 var _ = Describe("Domain / URL / Load Balancing", func() {
 	var (
 		loadBalancer                *url.LoadBalancer
-		multipleShortURLsRepository *FakeLoadBalancedURLsRepository
+		controller                  *gomock.Controller
+		multipleShortURLsRepository *mocks.MockLoadBalancedURLsRepository
 		ctx                         context.Context
 	)
 	BeforeEach(func() {
-		multipleShortURLsRepository = &FakeLoadBalancedURLsRepository{}
+		controller = gomock.NewController(GinkgoT())
+		multipleShortURLsRepository = mocks.NewMockLoadBalancedURLsRepository(controller)
 		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository)
 		ctx = context.Background()
+	})
+	AfterEach(func() {
+		controller.Finish()
 	})
 
 	When("a single URL is generated from multiple URLs", func() {
 		It("is correctly generated", func() {
+			multipleShortURLsRepository.EXPECT().SaveLoadBalancedURL(gomock.Any(), &url.LoadBalancedURL{
+				Hash: "P3Z83Gpy",
+				LongURLs: []url.OriginalURL{
+					{URL: "aURL", IsValid: false},
+					{URL: "anotherURL", IsValid: false},
+				},
+			})
+
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL", "anotherURL"})
 
 			Expect(err).ToNot(HaveOccurred())
@@ -35,19 +50,12 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 					{URL: "anotherURL", IsValid: false},
 				},
 			}))
-			Expect(multipleShortURLsRepository.urls).To(ContainElement(Equal(&url.LoadBalancedURL{
-				Hash: "P3Z83Gpy",
-				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: false},
-					{URL: "anotherURL", IsValid: false},
-				},
-			})))
 		})
 	})
 
 	When("the repository returns an error", func() {
 		It("returns the error from the repository", func() {
-			multipleShortURLsRepository.shouldReturnError(errors.New("unknown error"))
+			multipleShortURLsRepository.EXPECT().SaveLoadBalancedURL(gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL"})
 
 			Expect(err).To(MatchError("error saving load-balanced URLs into repository: unknown error"))

@@ -1,6 +1,9 @@
 package model
 
 import (
+	"encoding/json"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
@@ -61,4 +64,14 @@ func ClickDetailsToDomain(clickModel *Clickdetails) *click.Details {
 		Hash: clickModel.Hash,
 		IP:   clickModel.IP,
 	}
+}
+
+func DomainEventFromDomain(event domain.Event) DomainEvent {
+	data, _ := json.Marshal(event)
+	result := DomainEvent{
+		ID:        event.ID(),
+		CreatedAt: event.HappenedOn(),
+		Payload:   data,
+	}
+	return result
 }
