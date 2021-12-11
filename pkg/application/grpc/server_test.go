@@ -24,10 +24,11 @@ var _ = Describe("Server", func() {
 		urlValidator = &FakeURLValidator{returnValidURL: true}
 		metrics = &FakeMetrics{}
 		connection, closeConnection = newTestingConnection(grpc.Config{
-			BaseDomain:         "https://example.com",
-			ShortURLRepository: inmemory.NewRepository(),
-			URLValidator:       urlValidator,
-			CustomMetrics:      metrics,
+			BaseDomain:                 "https://example.com",
+			ShortURLRepository:         inmemory.NewRepository(),
+			URLValidator:               urlValidator,
+			CustomMetrics:              metrics,
+			LoadBalancedURLsRepository: inmemory.NewRepository(),
 		})
 	})
 
@@ -37,13 +38,15 @@ var _ = Describe("Server", func() {
 
 	Context("URLShorteningClient", func() {
 		var (
+			ctx             context.Context
 			client          genproto.URLShorteningClient
 			shortURLsClient genproto.URLShortening_ShortURLsClient
 		)
 		BeforeEach(func() {
+			ctx = context.Background()
 			client = genproto.NewURLShorteningClient(connection)
 			var err error
-			shortURLsClient, err = client.ShortURLs(context.Background())
+			shortURLsClient, err = client.ShortURLs(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -90,6 +93,23 @@ var _ = Describe("Server", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Url).To(Equal("https://google.com"))
 				Expect(response.Result.(*genproto.ShortURLsResponse_Error_).Error.Error).To(Equal("unknown testing error"))
+			})
+		})
+
+		When("the client wants to create a load-balanced URL", func() {
+			It("creates the URL correctly", func() {
+				balanceURLsResponse, err := client.BalanceURLs(ctx, &genproto.BalanceURLsRequest{Urls: []string{"https://google.com", "https://youtube.com"}})
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(balanceURLsResponse.GetShortUrl()).To(Equal("https://example.com/lb/8YOPuCnc"))
+			})
+			Context("but the list is empty", func() {
+				It("returns an error", func() {
+					balanceURLsResponse, err := client.BalanceURLs(ctx, &genproto.BalanceURLsRequest{})
+
+					Expect(err).To(MatchError(ContainSubstring("no URLs specified")))
+					Expect(balanceURLsResponse.GetShortUrl()).To(BeEmpty())
+				})
 			})
 		})
 	})

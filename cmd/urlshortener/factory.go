@@ -48,10 +48,11 @@ func (f *factory) httpConfig() http.Config {
 
 func (f *factory) grpcConfig() grpc.Config {
 	return grpc.Config{
-		BaseDomain:         f.baseDomain(),
-		ShortURLRepository: f.shortURLRepository(),
-		URLValidator:       f.urlValidator(),
-		CustomMetrics:      f.customMetrics(),
+		BaseDomain:                 f.baseDomain(),
+		ShortURLRepository:         f.shortURLRepository(),
+		URLValidator:               f.urlValidator(),
+		CustomMetrics:              f.customMetrics(),
+		LoadBalancedURLsRepository: f.loadBalancedURLsRepository(),
 	}
 }
 

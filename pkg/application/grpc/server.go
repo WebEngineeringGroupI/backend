@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -13,8 +14,9 @@ import (
 
 type server struct {
 	genproto.UnimplementedURLShorteningServer
-	urlShortener *url.SingleURLShortener
 	baseDomain   string
+	urlShortener *url.SingleURLShortener
+	loadBalancer *url.LoadBalancer
 }
 
 func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServer) error {
@@ -56,11 +58,21 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 	}
 }
 
+func (s *server) BalanceURLs(ctx context.Context, req *genproto.BalanceURLsRequest) (*genproto.BalanceURLsResponse, error) {
+	//fixme(fede): use the ctx for cancellation
+	balancedURL, err := s.loadBalancer.ShortURLs(req.GetUrls())
+	if err != nil {
+		return nil, err
+	}
+	return &genproto.BalanceURLsResponse{ShortUrl: fmt.Sprintf("%s/lb/%s", s.baseDomain, balancedURL.Hash)}, nil
+}
+
 type Config struct {
-	BaseDomain         string
-	ShortURLRepository url.ShortURLRepository
-	URLValidator       url.Validator
-	CustomMetrics      url.Metrics
+	BaseDomain                 string
+	ShortURLRepository         url.ShortURLRepository
+	URLValidator               url.Validator
+	CustomMetrics              url.Metrics
+	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
 }
 
 func NewServer(config Config) *grpc.Server {
@@ -68,6 +80,7 @@ func NewServer(config Config) *grpc.Server {
 	srv := &server{
 		baseDomain:   config.BaseDomain,
 		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics),
+		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)
