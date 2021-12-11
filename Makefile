@@ -24,6 +24,9 @@ run-db:
 kill-db:
 	docker rm -f postgres
 
+bump:
+	GOPRIVATE="github.com/WebEngineeringGroupI/*" go get -d -u -v -t ./...
+
 fmt:
 	find -iname '*.go' | xargs -L1 gofmt -s -w
 	go mod tidy

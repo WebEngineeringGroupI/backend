@@ -21,9 +21,10 @@ var _ = Describe("Server", func() {
 	BeforeEach(func() {
 		metrics = &FakeMetrics{}
 		connection, closeConnection = newTestingConnection(grpc.Config{
-			BaseDomain:         "https://example.com",
-			ShortURLRepository: inmemory.NewRepository(),
-			CustomMetrics:      metrics,
+			BaseDomain:                 "https://example.com",
+			CustomMetrics:              metrics,
+			ShortURLRepository:         inmemory.NewRepository(),
+			LoadBalancedURLsRepository: inmemory.NewRepository(),
 		})
 	})
 
@@ -33,13 +34,15 @@ var _ = Describe("Server", func() {
 
 	Context("URLShorteningClient", func() {
 		var (
+			ctx             context.Context
 			client          genproto.URLShorteningClient
 			shortURLsClient genproto.URLShortening_ShortURLsClient
 		)
 		BeforeEach(func() {
+			ctx = context.Background()
 			client = genproto.NewURLShorteningClient(connection)
 			var err error
-			shortURLsClient, err = client.ShortURLs(context.Background())
+			shortURLsClient, err = client.ShortURLs(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -61,6 +64,23 @@ var _ = Describe("Server", func() {
 			Expect(response.GetSuccess()).ToNot(BeNil())
 			Expect(response.GetSuccess().LongUrl).To(Equal("https://youtube.com"))
 			Expect(response.GetSuccess().ShortUrl).To(Equal("https://example.com/r/unW6a4Dd"))
+		})
+
+		When("the client wants to create a load-balanced URL", func() {
+			It("creates the URL correctly", func() {
+				balanceURLsResponse, err := client.BalanceURLs(ctx, &genproto.BalanceURLsRequest{Urls: []string{"https://google.com", "https://youtube.com"}})
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(balanceURLsResponse.GetShortUrl()).To(Equal("https://example.com/lb/8YOPuCnc"))
+			})
+			Context("but the list is empty", func() {
+				It("returns an error", func() {
+					balanceURLsResponse, err := client.BalanceURLs(ctx, &genproto.BalanceURLsRequest{})
+
+					Expect(err).To(MatchError(ContainSubstring("no URLs specified")))
+					Expect(balanceURLsResponse.GetShortUrl()).To(BeEmpty())
+				})
+			})
 		})
 	})
 })

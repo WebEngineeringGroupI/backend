@@ -40,10 +40,11 @@ func (f *factory) httpConfig() http.Config {
 
 func (f *factory) grpcConfig() grpc.Config {
 	return grpc.Config{
-		BaseDomain:         f.baseDomain(),
-		ShortURLRepository: f.newPostgresDB(),
-		CustomMetrics:      f.customMetrics(),
-		EventOutbox:        f.newPostgresDB(),
+		BaseDomain:                 f.baseDomain(),
+		ShortURLRepository:         f.newPostgresDB(),
+		CustomMetrics:              f.customMetrics(),
+		LoadBalancedURLsRepository: f.newPostgresDB(),
+		EventOutbox:                f.newPostgresDB(),
 	}
 }
 
