@@ -25,6 +25,7 @@ var _ = Describe("Server", func() {
 			CustomMetrics:              metrics,
 			ShortURLRepository:         inmemory.NewRepository(),
 			LoadBalancedURLsRepository: inmemory.NewRepository(),
+			EventOutbox:                inmemory.NewRepository(),
 		})
 	})
 
