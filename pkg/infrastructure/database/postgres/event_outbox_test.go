@@ -35,7 +35,7 @@ var _ = Describe("Infrastructure / Database / Postgres / EventOutbox", func() {
 	})
 
 	It("saves the event in the database", func() {
-		err := session.SaveEvent(ctx, event.NewShortURLCreated("event_id", time.Time{}, "hash", "originalURL", false))
+		err := session.SaveEvent(ctx, event.NewShortURLCreated("event_id", time.Time{}, "hash", "originalURL"))
 		Expect(err).ToNot(HaveOccurred())
 
 		domainEvent := &model.DomainEvent{ID: "event_id"}
@@ -43,7 +43,7 @@ var _ = Describe("Infrastructure / Database / Postgres / EventOutbox", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(has).To(BeTrue())
 		Expect(domainEvent.ID).To(Equal("event_id"))
-		Expect(domainEvent.Payload).To(Equal([]byte(`{"Hash": "hash", "EventID": "event_id", "IsValid": false, "Creation": "0001-01-01T00:00:00Z", "OriginalURL": "originalURL"}`)))
+		Expect(domainEvent.Payload).To(Equal([]byte(`{"Hash": "hash", "EventID": "event_id", "Creation": "0001-01-01T00:00:00Z", "OriginalURL": "originalURL"}`)))
 	})
 })
 

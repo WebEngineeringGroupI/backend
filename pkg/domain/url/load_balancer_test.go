@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 )
@@ -16,18 +17,20 @@ import (
 var _ = Describe("Domain / URL / Load Balancing", func() {
 	var (
 		loadBalancer                *url.LoadBalancer
-		controller                  *gomock.Controller
+		ctrl                        *gomock.Controller
 		multipleShortURLsRepository *mocks.MockLoadBalancedURLsRepository
+		emitter                     *domainmocks.MockEmitter
 		ctx                         context.Context
 	)
 	BeforeEach(func() {
-		controller = gomock.NewController(GinkgoT())
-		multipleShortURLsRepository = mocks.NewMockLoadBalancedURLsRepository(controller)
-		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository)
+		ctrl = gomock.NewController(GinkgoT())
+		multipleShortURLsRepository = mocks.NewMockLoadBalancedURLsRepository(ctrl)
+		emitter = domainmocks.NewMockEmitter(ctrl)
+		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository, emitter)
 		ctx = context.Background()
 	})
 	AfterEach(func() {
-		controller.Finish()
+		ctrl.Finish()
 	})
 
 	When("a single URL is generated from multiple URLs", func() {
@@ -39,6 +42,7 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 					{URL: "anotherURL", IsValid: false},
 				},
 			})
+			emitter.EXPECT().EmitLoadBalancedURLCreated(ctx, "P3Z83Gpy", []string{"aURL", "anotherURL"})
 
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL", "anotherURL"})
 
@@ -62,7 +66,21 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 			Expect(loadBalancedURLs).To(BeNil())
 		})
 	})
+	When("the emitter returns an error", func() {
+		It("returns the error", func() {
+			multipleShortURLsRepository.EXPECT().SaveLoadBalancedURL(gomock.Any(), &url.LoadBalancedURL{
+				Hash: "aSAQaNaB",
+				LongURLs: []url.OriginalURL{
+					{URL: "aURL", IsValid: false},
+				},
+			})
+			emitter.EXPECT().EmitLoadBalancedURLCreated(ctx, "aSAQaNaB", []string{"aURL"}).Return(errors.New("unknown error"))
+			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL"})
 
+			Expect(err).To(MatchError("error emitting event of load balanced URLs created: unknown error"))
+			Expect(loadBalancedURLs).To(BeNil())
+		})
+	})
 	When("the list of URLs is empty", func() {
 		It("returns an error", func() {
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{})

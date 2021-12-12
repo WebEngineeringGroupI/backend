@@ -68,7 +68,7 @@ func (e *HandlerRepository) shortener() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
-	loadBalancerCreator := url.NewLoadBalancer(e.config.LoadBalancedURLsRepository)
+	loadBalancerCreator := url.NewLoadBalancer(e.config.LoadBalancedURLsRepository, e.config.EventEmitter)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn loadBalancerURLDataIn
@@ -154,7 +154,7 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) csvShortener() http.HandlerFunc {
-	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics, formatter.NewCSV())
+	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics, formatter.NewCSV(), e.config.EventEmitter)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		data := []byte(request.FormValue("file"))

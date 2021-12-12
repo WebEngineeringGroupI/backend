@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 )
 
 var (
@@ -23,6 +25,7 @@ type LoadBalancedURLsRepository interface {
 
 type LoadBalancer struct {
 	repository LoadBalancedURLsRepository
+	emitter    event.Emitter
 }
 
 type LoadBalancedURL struct {
@@ -47,6 +50,10 @@ func (b *LoadBalancer) ShortURLs(ctx context.Context, urls []string) (*LoadBalan
 	if err != nil {
 		return nil, fmt.Errorf("error saving load-balanced URLs into repository: %w", err)
 	}
+	err = b.emitter.EmitLoadBalancedURLCreated(ctx, multipleShortURLs.Hash, urls)
+	if err != nil {
+		return nil, fmt.Errorf("error emitting event of load balanced URLs created: %w", err)
+	}
 
 	return multipleShortURLs, nil
 }
@@ -66,8 +73,9 @@ func hashFromURLs(urls []string) string {
 	return hashFromURL(strings.Join(urls, ""))
 }
 
-func NewLoadBalancer(repository LoadBalancedURLsRepository) *LoadBalancer {
+func NewLoadBalancer(repository LoadBalancedURLsRepository, emitter event.Emitter) *LoadBalancer {
 	return &LoadBalancer{
 		repository: repository,
+		emitter:    emitter,
 	}
 }

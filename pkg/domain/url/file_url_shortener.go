@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 )
 
 var ErrUnableToConvertDataToLongURLs = errors.New("unable to convert data to long urls")
@@ -17,6 +19,7 @@ type FileURLShortener struct {
 	repository ShortURLRepository
 	formatter  Formatter
 	metrics    Metrics
+	emitter    event.Emitter
 }
 
 func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) ([]ShortURL, error) {
@@ -30,17 +33,23 @@ func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) (
 
 	shortURLs = make([]ShortURL, 0, len(longURLs))
 	for _, longURL := range longURLs {
+		hash := hashFromURL(longURL)
+		isValid := false
 		shortURL := ShortURL{
-			Hash: hashFromURL(longURL),
+			Hash: hash,
 			OriginalURL: OriginalURL{
 				URL:     longURL,
-				IsValid: false,
+				IsValid: isValid,
 			},
 		}
 
 		err := s.repository.SaveShortURL(ctx, &shortURL)
 		if err != nil {
 			return nil, fmt.Errorf("unable to save URL '%s' to repository: %w", longURL, err)
+		}
+		err = s.emitter.EmitShortURLCreated(ctx, hash, longURL)
+		if err != nil {
+			return nil, fmt.Errorf("unable to emit short URL creation event: %w", err)
 		}
 
 		shortURLs = append(shortURLs, shortURL)
@@ -49,10 +58,11 @@ func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) (
 	return shortURLs, nil
 }
 
-func NewFileURLShortener(repository ShortURLRepository, metrics Metrics, formatter Formatter) *FileURLShortener {
+func NewFileURLShortener(repository ShortURLRepository, metrics Metrics, formatter Formatter, emitter event.Emitter) *FileURLShortener {
 	return &FileURLShortener{
 		repository: repository,
 		formatter:  formatter,
 		metrics:    metrics,
+		emitter:    emitter,
 	}
 }

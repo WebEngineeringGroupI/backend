@@ -46,7 +46,7 @@ func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
-	err = s.emitter.EmitShortURLCreated(ctx, shortURL.Hash, shortURL.OriginalURL.URL, shortURL.OriginalURL.IsValid)
+	err = s.emitter.EmitShortURLCreated(ctx, shortURL.Hash, shortURL.OriginalURL.URL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to save domain event: %w", err)
 	}

@@ -10,8 +10,12 @@ type emitter struct {
 	outbox Outbox
 }
 
-func (e *emitter) EmitShortURLCreated(ctx context.Context, hash string, originalURL string, isValid bool) error {
-	return e.outbox.SaveEvent(ctx, NewShortURLCreated(e.uuid.NewUUID(), e.clock.Now(), hash, originalURL, isValid))
+func (e *emitter) EmitShortURLCreated(ctx context.Context, hash string, originalURL string) error {
+	return e.outbox.SaveEvent(ctx, NewShortURLCreated(e.uuid.NewUUID(), e.clock.Now(), hash, originalURL))
+}
+
+func (e *emitter) EmitLoadBalancedURLCreated(ctx context.Context, hash string, originalURLs []string) error {
+	return e.outbox.SaveEvent(ctx, NewLoadBalancedURLCreated(e.uuid.NewUUID(), e.clock.Now(), hash, originalURLs))
 }
 
 func NewEmitter(outbox Outbox, clock Clock, uuid UUID) Emitter {

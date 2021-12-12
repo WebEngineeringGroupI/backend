@@ -9,7 +9,6 @@ type ShortURLCreated struct {
 	Creation    time.Time
 	Hash        string
 	OriginalURL string
-	IsValid     bool
 }
 
 func (s *ShortURLCreated) ID() string {
@@ -20,12 +19,11 @@ func (s *ShortURLCreated) HappenedOn() time.Time {
 	return s.Creation
 }
 
-func NewShortURLCreated(id string, happenedOn time.Time, hash string, originalURL string, isValid bool) *ShortURLCreated {
+func NewShortURLCreated(id string, happenedOn time.Time, hash string, originalURL string) *ShortURLCreated {
 	return &ShortURLCreated{
 		EventID:     id,
 		Creation:    happenedOn,
 		Hash:        hash,
 		OriginalURL: originalURL,
-		IsValid:     isValid,
 	}
 }

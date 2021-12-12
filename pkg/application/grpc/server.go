@@ -82,7 +82,7 @@ func NewServer(config Config) *grpc.Server {
 	srv := &server{
 		baseDomain:   config.BaseDomain,
 		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics, config.EventEmitter),
-		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository),
+		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository, config.EventEmitter),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)

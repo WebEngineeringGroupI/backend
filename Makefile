@@ -18,6 +18,9 @@ deps:
 migrate-db: deps
 	migrate -path ./database/migrate/ -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" up
 
+clean-db: deps
+	migrate -path ./database/migrate/ -database "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" down -all
+
 run-db:
 	docker pull postgres
 	docker run --name postgres --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres &
@@ -40,6 +43,7 @@ test-unit: generate
 
 test-integration: run-db generate
 	sleep 10 # Give some time to DB to be launched
+	$(MAKE) clean-db
 	$(MAKE) migrate-db
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -p ./pkg/infrastructure
 	$(MAKE) kill-db

@@ -36,7 +36,8 @@ var _ = Describe("Server", func() {
 			EventEmitter:               emitter,
 		})
 
-		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		emitter.EXPECT().EmitLoadBalancedURLCreated(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		metrics.EXPECT().RecordSingleURLMetrics().AnyTimes()
 		metrics.EXPECT().RecordFileURLMetrics().AnyTimes()
 	})

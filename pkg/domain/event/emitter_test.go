@@ -40,9 +40,9 @@ var _ = Describe("Domain / EventEmitter", func() {
 	})
 
 	It("creates a ShortURLCreated event with the time and ID", func() {
-		outbox.EXPECT().SaveEvent(ctx, event.NewShortURLCreated("anUUID", time.Time{}, "hash", "originalURL", false))
+		outbox.EXPECT().SaveEvent(ctx, event.NewShortURLCreated("anUUID", time.Time{}, "hash", "originalURL"))
 
-		err := emitter.EmitShortURLCreated(ctx, "hash", "originalURL", false)
+		err := emitter.EmitShortURLCreated(ctx, "hash", "originalURL")
 
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -50,10 +50,10 @@ var _ = Describe("Domain / EventEmitter", func() {
 	When("the outbox returns an error", func() {
 		It("returns the error from the outbox", func() {
 			outbox.EXPECT().
-				SaveEvent(ctx, event.NewShortURLCreated("anUUID", time.Time{}, "hash", "originalURL", false)).
+				SaveEvent(ctx, event.NewShortURLCreated("anUUID", time.Time{}, "hash", "originalURL")).
 				Return(errors.New("unknown error"))
 
-			err := emitter.EmitShortURLCreated(ctx, "hash", "originalURL", false)
+			err := emitter.EmitShortURLCreated(ctx, "hash", "originalURL")
 
 			Expect(err).To(MatchError("unknown error"))
 		})

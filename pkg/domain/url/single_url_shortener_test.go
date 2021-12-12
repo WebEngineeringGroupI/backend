@@ -41,7 +41,7 @@ var _ = Describe("Single URL shortener", func() {
 
 	Context("when providing a long URL", func() {
 		BeforeEach(func() {
-			emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any(), false).AnyTimes()
+			emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		It("generates a hash", func() {
@@ -99,7 +99,7 @@ var _ = Describe("Single URL shortener", func() {
 
 	It("should emit an event saved to the emitter", func() {
 		metrics.EXPECT().RecordSingleURLMetrics().Times(1)
-		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), "cv6VxVdu", "https://google.com", false)
+		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), "cv6VxVdu", "https://google.com")
 		_, err := shortener.HashFromURL(ctx, "https://google.com")
 
 		Expect(err).ToNot(HaveOccurred())
@@ -108,7 +108,7 @@ var _ = Describe("Single URL shortener", func() {
 	Context("when the event cannot be stored", func() {
 		It("should return the error", func() {
 			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
-			emitter.EXPECT().EmitShortURLCreated(gomock.Any(), "cv6VxVdu", "https://google.com", false).Return(errors.New("unknown error"))
+			emitter.EXPECT().EmitShortURLCreated(gomock.Any(), "cv6VxVdu", "https://google.com").Return(errors.New("unknown error"))
 			shortURL, err := shortener.HashFromURL(ctx, "https://google.com")
 
 			Expect(err).To(MatchError("unable to save domain event: unknown error"))

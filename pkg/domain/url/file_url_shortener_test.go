@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
@@ -15,11 +16,12 @@ import (
 
 var _ = Describe("Multiple URL Shortener", func() {
 	var (
-		controller *gomock.Controller
+		ctrl       *gomock.Controller
 		shortener  *url.FileURLShortener
 		repository url.ShortURLRepository
 		formatter  *mocks.MockFormatter
 		metrics    *mocks.MockMetrics
+		emitter    *domainmocks.MockEmitter
 		ctx        context.Context
 	)
 
@@ -27,19 +29,21 @@ var _ = Describe("Multiple URL Shortener", func() {
 		ctx = context.Background()
 		repository = inmemory.NewRepository()
 
-		controller = gomock.NewController(GinkgoT())
-		metrics = mocks.NewMockMetrics(controller)
-		formatter = mocks.NewMockFormatter(controller)
+		ctrl = gomock.NewController(GinkgoT())
+		metrics = mocks.NewMockMetrics(ctrl)
+		formatter = mocks.NewMockFormatter(ctrl)
+		emitter = domainmocks.NewMockEmitter(ctrl)
 
-		shortener = url.NewFileURLShortener(repository, metrics, formatter)
+		shortener = url.NewFileURLShortener(repository, metrics, formatter, emitter)
 	})
 	AfterEach(func() {
-		controller.Finish()
+		ctrl.Finish()
 	})
 
 	Context("when providing multiple long URLs", func() {
 		BeforeEach(func() {
 			formatter.EXPECT().FormatDataToURLs(gomock.Any()).Return(aLongURLSet(), nil)
+			emitter.EXPECT().EmitShortURLCreated(ctx, gomock.Any(), gomock.Any()).AnyTimes()
 		})
 
 		It("generates a hash for each one", func() {
@@ -105,6 +109,31 @@ var _ = Describe("Multiple URL Shortener", func() {
 
 			Expect(err).To(MatchError("unknown error"))
 			Expect(shortURLs).To(BeNil())
+		})
+	})
+
+	It("emits events of creation", func() {
+		metrics.EXPECT().RecordFileURLMetrics()
+		formatter.EXPECT().FormatDataToURLs(gomock.Any()).Return(aLongURLSet(), nil)
+		emitter.EXPECT().EmitShortURLCreated(ctx, "cv6VxVdu", "https://google.com")
+		emitter.EXPECT().EmitShortURLCreated(ctx, "2sMi6l0Z", "https://unizar.es")
+		shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(shortURLs).To(HaveLen(2))
+		Expect(shortURLs[0].Hash).To(HaveLen(8))
+		Expect(shortURLs[1].Hash).To(HaveLen(8))
+	})
+
+	When("the emitter returns an error", func() {
+		It("returns the error", func() {
+			metrics.EXPECT().RecordFileURLMetrics()
+			formatter.EXPECT().FormatDataToURLs(gomock.Any()).Return(aLongURLSet(), nil)
+			emitter.EXPECT().EmitShortURLCreated(ctx, "cv6VxVdu", "https://google.com").Return(errors.New("unknown error"))
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
+
+			Expect(err).To(MatchError("unable to emit short URL creation event: unknown error"))
+			Expect(shortURLs).To(BeEmpty())
 		})
 	})
 })

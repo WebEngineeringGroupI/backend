@@ -19,5 +19,6 @@ type UUID interface {
 }
 
 type Emitter interface {
-	EmitShortURLCreated(ctx context.Context, hash string, originalURL string, isValid bool) error
+	EmitShortURLCreated(ctx context.Context, hash string, originalURL string) error
+	EmitLoadBalancedURLCreated(ctx context.Context, hash string, originalURLs []string) error
 }
