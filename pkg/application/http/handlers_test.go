@@ -9,36 +9,53 @@ import (
 	gohttp "net/http"
 	"strings"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	urlmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
 var _ = Describe("Application / HTTP", func() {
 	var (
+		ctrl                       *gomock.Controller
+		emitter                    *mocks.MockEmitter
+		metrics                    *urlmocks.MockMetrics
 		r                          *testingRouter
 		shortURLRepository         url.ShortURLRepository
 		loadBalancerURLsRepository url.LoadBalancedURLsRepository
-		metrics                    *FakeMetrics
 		ctx                        context.Context
 	)
 	BeforeEach(func() {
 		rand.Seed(GinkgoRandomSeed())
 		log.Default().SetOutput(GinkgoWriter)
 		ctx = context.Background()
+
+		ctrl = gomock.NewController(GinkgoT())
+		metrics = urlmocks.NewMockMetrics(ctrl)
+		emitter = mocks.NewMockEmitter(ctrl)
+
 		inmemoryRepository := inmemory.NewRepository()
 		shortURLRepository = inmemoryRepository
 		loadBalancerURLsRepository = inmemoryRepository
-		metrics = &FakeMetrics{}
 		r = newTestingRouter(http.Config{
 			BaseDomain:                 "http://example.com",
 			ShortURLRepository:         shortURLRepository,
 			LoadBalancedURLsRepository: loadBalancerURLsRepository,
 			CustomMetrics:              metrics,
+			EventEmitter:               emitter,
 		})
+
+		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		metrics.EXPECT().RecordFileURLMetrics().AnyTimes()
+		metrics.EXPECT().RecordSingleURLMetrics().AnyTimes()
+	})
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	Context("when it receives an HTTP request for a short URL", func() {

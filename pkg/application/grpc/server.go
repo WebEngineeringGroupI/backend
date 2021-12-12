@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/domain"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
@@ -74,14 +74,14 @@ type Config struct {
 	ShortURLRepository         url.ShortURLRepository
 	CustomMetrics              url.Metrics
 	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
-	EventOutbox                domain.EventOutbox
+	EventEmitter               event.Emitter
 }
 
 func NewServer(config Config) *grpc.Server {
 	grpcServer := grpc.NewServer()
 	srv := &server{
 		baseDomain:   config.BaseDomain,
-		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics, config.EventOutbox),
+		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics, config.EventEmitter),
 		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository),
 	}
 

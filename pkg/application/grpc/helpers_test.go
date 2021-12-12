@@ -36,21 +36,3 @@ func newTestingConnection(config grpc.Config) (*gogrpc.ClientConn, context.Cance
 
 	return conn, cancel
 }
-
-type FakeMetrics struct {
-	singleURLMetrics int
-	fileURLMetrics   int
-	urlsProcessed    int
-}
-
-func (f *FakeMetrics) RecordSingleURLMetrics() {
-	f.singleURLMetrics++
-}
-
-func (f *FakeMetrics) RecordFileURLMetrics() {
-	f.fileURLMetrics++
-}
-
-func (f *FakeMetrics) RecordUrlsProcessed() {
-	f.urlsProcessed++
-}

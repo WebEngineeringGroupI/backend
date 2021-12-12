@@ -2,9 +2,11 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/domain"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
@@ -66,12 +68,26 @@ func ClickDetailsToDomain(clickModel *Clickdetails) *click.Details {
 	}
 }
 
-func DomainEventFromDomain(event domain.Event) DomainEvent {
+func DomainEventFromDomain(event event.Event) DomainEvent {
 	data, _ := json.Marshal(event)
 	result := DomainEvent{
 		ID:        event.ID(),
 		CreatedAt: event.HappenedOn(),
+		Type:      reflect.TypeOf(event).String(),
 		Payload:   data,
 	}
 	return result
+}
+
+func DomainEventToDomain(domainEvent DomainEvent) (event.Event, error) {
+	switch domainEvent.Type {
+	case reflect.TypeOf(&event.ShortURLCreated{}).String():
+		var shortURLCreated *event.ShortURLCreated
+		err := json.Unmarshal(domainEvent.Payload, &shortURLCreated)
+		if err != nil {
+			return nil, err
+		}
+		return shortURLCreated, nil
+	}
+	return nil, fmt.Errorf("unknown event type: %s", domainEvent.Type)
 }

@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/mocks"
+	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
@@ -20,7 +20,7 @@ var _ = Describe("Single URL shortener", func() {
 		shortener  *url.SingleURLShortener
 		repository url.ShortURLRepository
 		metrics    *mocks.MockMetrics
-		outbox     *domainmocks.MockEventOutbox
+		emitter    *domainmocks.MockEmitter
 		ctx        context.Context
 	)
 
@@ -29,10 +29,10 @@ var _ = Describe("Single URL shortener", func() {
 		repository = inmemory.NewRepository()
 
 		controller = gomock.NewController(GinkgoT())
-		outbox = domainmocks.NewMockEventOutbox(controller)
+		emitter = domainmocks.NewMockEmitter(controller)
 		metrics = mocks.NewMockMetrics(controller)
 
-		shortener = url.NewSingleURLShortener(repository, metrics, outbox)
+		shortener = url.NewSingleURLShortener(repository, metrics, emitter)
 	})
 
 	AfterEach(func() {
@@ -41,7 +41,7 @@ var _ = Describe("Single URL shortener", func() {
 
 	Context("when providing a long URL", func() {
 		BeforeEach(func() {
-			outbox.EXPECT().SaveEvent(gomock.Any(), gomock.Any()).AnyTimes()
+			emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any(), false).AnyTimes()
 		})
 
 		It("generates a hash", func() {
@@ -97,15 +97,9 @@ var _ = Describe("Single URL shortener", func() {
 		// TODO(german): What's the meaning of Safe and Sponsor in the original urlshortener implementation
 	})
 
-	It("should emit an event saved to the outbox", func() {
+	It("should emit an event saved to the emitter", func() {
 		metrics.EXPECT().RecordSingleURLMetrics().Times(1)
-		outbox.EXPECT().SaveEvent(gomock.Any(), url.NewShortURLCreated(&url.ShortURL{
-			Hash: "cv6VxVdu",
-			OriginalURL: url.OriginalURL{
-				URL:     "https://google.com",
-				IsValid: false,
-			},
-		}))
+		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), "cv6VxVdu", "https://google.com", false)
 		_, err := shortener.HashFromURL(ctx, "https://google.com")
 
 		Expect(err).ToNot(HaveOccurred())
@@ -114,7 +108,7 @@ var _ = Describe("Single URL shortener", func() {
 	Context("when the event cannot be stored", func() {
 		It("should return the error", func() {
 			metrics.EXPECT().RecordSingleURLMetrics().Times(1)
-			outbox.EXPECT().SaveEvent(gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
+			emitter.EXPECT().EmitShortURLCreated(gomock.Any(), "cv6VxVdu", "https://google.com", false).Return(errors.New("unknown error"))
 			shortURL, err := shortener.HashFromURL(ctx, "https://google.com")
 
 			Expect(err).To(MatchError("unable to save domain event: unknown error"))

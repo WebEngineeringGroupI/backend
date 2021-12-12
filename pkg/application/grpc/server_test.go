@@ -4,33 +4,46 @@ import (
 	"context"
 
 	genproto "github.com/WebEngineeringGroupI/genproto-go/api/v1alpha1"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gogrpc "google.golang.org/grpc"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
+	urlmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
 )
 
 var _ = Describe("Server", func() {
 	var (
+		ctrl            *gomock.Controller
+		metrics         *urlmocks.MockMetrics
+		emitter         *mocks.MockEmitter
 		connection      gogrpc.ClientConnInterface
 		closeConnection context.CancelFunc
-		metrics         *FakeMetrics
 	)
+
 	BeforeEach(func() {
-		metrics = &FakeMetrics{}
+		ctrl = gomock.NewController(GinkgoT())
+		metrics = urlmocks.NewMockMetrics(ctrl)
+		emitter = mocks.NewMockEmitter(ctrl)
 		connection, closeConnection = newTestingConnection(grpc.Config{
 			BaseDomain:                 "https://example.com",
 			CustomMetrics:              metrics,
 			ShortURLRepository:         inmemory.NewRepository(),
 			LoadBalancedURLsRepository: inmemory.NewRepository(),
-			EventOutbox:                inmemory.NewRepository(),
+			EventEmitter:               emitter,
 		})
+
+		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		metrics.EXPECT().RecordSingleURLMetrics().AnyTimes()
+		metrics.EXPECT().RecordFileURLMetrics().AnyTimes()
 	})
 
 	AfterEach(func() {
 		closeConnection()
+		ctrl.Finish()
 	})
 
 	Context("URLShorteningClient", func() {

@@ -4,9 +4,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type UUID struct {
+type Generator struct {
 }
 
-func (U *UUID) New() string {
+func (U *Generator) NewUUID() string {
 	return uuid.New().String()
+}
+
+func NewGenerator() *Generator {
+	return &Generator{}
 }

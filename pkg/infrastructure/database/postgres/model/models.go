@@ -36,5 +36,6 @@ type LoadBalancedUrl struct {
 type DomainEvent struct {
 	ID        string    `xorm:"'id'"`
 	Payload   []byte    `xorm:"'payload'"`
+	Type      string    `xorm:"'event_type'"`
 	CreatedAt time.Time `xorm:"created"`
 }

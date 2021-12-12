@@ -10,9 +10,12 @@ import (
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/clock"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/uuid"
 )
 
 type factory struct {
@@ -34,7 +37,7 @@ func (f *factory) httpConfig() http.Config {
 		CustomMetrics:              f.customMetrics(),
 		ShortURLRepository:         f.newPostgresDB(),
 		LoadBalancedURLsRepository: f.newPostgresDB(),
-		EventOutbox:                f.newPostgresDB(),
+		EventEmitter:               f.eventEmitter(),
 	}
 }
 
@@ -44,7 +47,7 @@ func (f *factory) grpcConfig() grpc.Config {
 		ShortURLRepository:         f.newPostgresDB(),
 		CustomMetrics:              f.customMetrics(),
 		LoadBalancedURLsRepository: f.newPostgresDB(),
-		EventOutbox:                f.newPostgresDB(),
+		EventEmitter:               f.eventEmitter(),
 	}
 }
 
@@ -96,6 +99,10 @@ func (f *factory) newPostgresDB() *postgres.DBSession {
 		f.postgresDBSingleton = db.Session()
 	}
 	return f.postgresDBSingleton
+}
+
+func (f *factory) eventEmitter() event.Emitter {
+	return event.NewEmitter(f.newPostgresDB(), clock.NewFromSystem(), uuid.NewGenerator())
 }
 
 func newFactory() *factory {

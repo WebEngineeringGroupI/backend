@@ -22,6 +22,16 @@ type ConnectionDetails struct {
 	SSLMode  string
 }
 
+func (d *ConnectionDetails) ConnectionString() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		d.User,
+		d.Pass,
+		d.Host,
+		d.Port,
+		d.Database,
+		d.SSLMode)
+}
+
 type DBSession struct {
 	session *xorm.Session
 }
@@ -42,14 +52,9 @@ func (d *DBSession) FindLoadBalancedURLByHash(ctx context.Context, hash string) 
 func (d *DBSession) SaveLoadBalancedURL(ctx context.Context, aURL *url.LoadBalancedURL) error {
 	dbURL := model.LoadBalancedURLFromDomain(aURL)
 	_, err := d.session.Context(ctx).Insert(&dbURL)
-
-	var pqError *pq.Error
-	if errors.As(err, &pqError) {
-		if pqError.Code == errDuplicateConstraintViolation {
-			return nil
-		}
+	if d.isDuplicateError(err) {
+		return nil
 	}
-
 	if err != nil {
 		return fmt.Errorf("unable to save load-balanced URL: %w", err)
 	}
@@ -63,12 +68,8 @@ var (
 func (d *DBSession) SaveShortURL(ctx context.Context, url *url.ShortURL) error {
 	shortURL := model.ShortURLFromDomain(url)
 	_, err := d.session.Context(ctx).Insert(&shortURL)
-
-	var pqError *pq.Error
-	if errors.As(err, &pqError) {
-		if pqError.Code == errDuplicateConstraintViolation {
-			return nil
-		}
+	if d.isDuplicateError(err) {
+		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("unable to save short URL: %w", err)
@@ -115,6 +116,16 @@ func (d *DBSession) Close() error {
 	return d.session.Close()
 }
 
+func (d *DBSession) isDuplicateError(err error) bool {
+	var pqError *pq.Error
+	if errors.As(err, &pqError) {
+		if pqError.Code == errDuplicateConstraintViolation {
+			return true
+		}
+	}
+	return false
+}
+
 func newDBSession(session *xorm.Session) *DBSession {
 	return &DBSession{session: session}
 }
@@ -124,15 +135,7 @@ type DB struct {
 }
 
 func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
-	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		connectionDetails.User,
-		connectionDetails.Pass,
-		connectionDetails.Host,
-		connectionDetails.Port,
-		connectionDetails.Database,
-		connectionDetails.SSLMode)
-
-	engine, err := xorm.NewEngine("postgres", connectionString)
+	engine, err := xorm.NewEngine("postgres", connectionDetails.ConnectionString())
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection to database: %w", err)
 	}

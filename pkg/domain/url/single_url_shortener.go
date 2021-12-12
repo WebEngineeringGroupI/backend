@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/domain"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 )
 
 type SingleURLShortener struct {
 	repository ShortURLRepository
 	metrics    Metrics
-	outbox     domain.EventOutbox
+	emitter    event.Emitter
 }
 
 type OriginalURL struct {
@@ -30,7 +30,6 @@ var (
 	ErrInvalidLongURLSpecified = errors.New("invalid long URL specified")
 )
 
-// FIXME(fede): Rename to something like ShortURLFromLong
 func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (*ShortURL, error) {
 	s.metrics.RecordSingleURLMetrics()
 
@@ -42,12 +41,12 @@ func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (
 		},
 	}
 
-	err := s.repository.SaveShortURL(ctx, shortURL) // FIXME(fede): test this error
+	err := s.repository.SaveShortURL(ctx, shortURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
-	err = s.outbox.SaveEvent(ctx, NewShortURLCreated(shortURL))
+	err = s.emitter.EmitShortURLCreated(ctx, shortURL.Hash, shortURL.OriginalURL.URL, shortURL.OriginalURL.IsValid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to save domain event: %w", err)
 	}
@@ -62,10 +61,10 @@ func hashFromURL(aLongURL string) string {
 	return hash
 }
 
-func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics, outbox domain.EventOutbox) *SingleURLShortener {
+func NewSingleURLShortener(repository ShortURLRepository, metrics Metrics, emitter event.Emitter) *SingleURLShortener {
 	return &SingleURLShortener{
 		repository: repository,
 		metrics:    metrics,
-		outbox:     outbox,
+		emitter:    emitter,
 	}
 }

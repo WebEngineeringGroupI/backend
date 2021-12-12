@@ -3,17 +3,17 @@ package inmemory
 import (
 	"context"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/domain"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 type Repository struct {
 	shortURLs        map[string]*url.ShortURL
 	loadBalancedURLs map[string]*url.LoadBalancedURL
-	eventOutbox      map[string]domain.Event
+	eventOutbox      map[string]event.Event
 }
 
-func (f *Repository) SaveEvent(ctx context.Context, event domain.Event) error {
+func (f *Repository) SaveEvent(ctx context.Context, event event.Event) error {
 	f.eventOutbox[event.ID()] = event
 	return nil
 }
@@ -49,6 +49,6 @@ func NewRepository() *Repository {
 	return &Repository{
 		shortURLs:        map[string]*url.ShortURL{},
 		loadBalancedURLs: map[string]*url.LoadBalancedURL{},
-		eventOutbox:      map[string]domain.Event{},
+		eventOutbox:      map[string]event.Event{},
 	}
 }

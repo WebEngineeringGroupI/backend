@@ -1,4 +1,4 @@
-package domain_test
+package event_test
 
 import (
 	"sync"
@@ -7,16 +7,16 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/domain"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 )
 
 var _ = Describe("Domain / Broker", func() {
 	var (
-		broker         *domain.Broker
+		broker         *event.Broker
 		fakeSubscriber *FakeSubscriber
 	)
 	BeforeEach(func() {
-		broker = domain.NewBroker()
+		broker = event.NewBroker()
 		fakeSubscriber = &FakeSubscriber{}
 	})
 
@@ -136,16 +136,16 @@ var _ = Describe("Domain / Broker", func() {
 
 type FakeSubscriber struct {
 	mutex         sync.RWMutex
-	eventsHandled []domain.Event
+	eventsHandled []event.Event
 }
 
-func (f *FakeSubscriber) EventsHandled() []domain.Event {
+func (f *FakeSubscriber) EventsHandled() []event.Event {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	return f.eventsHandled
 }
 
-func (f *FakeSubscriber) HandleEvent(event domain.Event) {
+func (f *FakeSubscriber) HandleEvent(event event.Event) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	f.eventsHandled = append(f.eventsHandled, event)
