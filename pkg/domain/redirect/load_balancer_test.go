@@ -2,39 +2,52 @@ package redirect_test
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"math/rand"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/redirect"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 )
-
-type FakeLoadBalancedURLsRepository struct {
-	validURLs     []string
-	invalidURLs   []string
-	errorToReturn error
-}
 
 var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 	var (
-		repository            *FakeLoadBalancedURLsRepository
-		multipleURLRedirector *redirect.LoadBalancerRedirector
 		ctx                   context.Context
+		ctrl                  *gomock.Controller
+		repository            *mocks.MockLoadBalancedURLsRepository
+		multipleURLRedirector *redirect.LoadBalancerRedirector
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		repository = &FakeLoadBalancedURLsRepository{}
+		ctrl = gomock.NewController(GinkgoT())
+		repository = mocks.NewMockLoadBalancedURLsRepository(ctrl)
 		multipleURLRedirector = redirect.NewLoadBalancerRedirector(repository)
 		rand.Seed(GinkgoRandomSeed())
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	When("providing a hash", func() {
 		It("returns only the valid URLs", func() {
-			repository.shouldReturnValidURLs("https://google.es").shouldReturnInvalidURLs("https://youtube.com")
+			repository.EXPECT().
+				FindLoadBalancedURLByHash(ctx, "someHash").
+				Return(&url.LoadBalancedURL{Hash: "someHash", LongURLs: []url.OriginalURL{
+					{
+						URL:     "https://google.es",
+						IsValid: true,
+					},
+					{
+						URL:     "https://youtube.com",
+						IsValid: false,
+					},
+				}}, nil)
 			longURL, err := multipleURLRedirector.ReturnAValidOriginalURL(ctx, "someHash")
 
 			Expect(err).ToNot(HaveOccurred())
@@ -43,7 +56,19 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 
 		When("there are multiple valid URLs", func() {
 			It("returns one of them randomly", func() {
-				repository.shouldReturnValidURLs("https://google.es", "https://youtube.com")
+				repository.EXPECT().
+					FindLoadBalancedURLByHash(ctx, "someHash").
+					AnyTimes().
+					Return(&url.LoadBalancedURL{Hash: "someHash", LongURLs: []url.OriginalURL{
+						{
+							URL:     "https://google.es",
+							IsValid: true,
+						},
+						{
+							URL:     "https://youtube.com",
+							IsValid: true,
+						},
+					}}, nil)
 				_, err := multipleURLRedirector.ReturnAValidOriginalURL(ctx, "someHash")
 
 				Expect(err).ToNot(HaveOccurred())
@@ -61,7 +86,18 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 
 	When("there are no valid URLs", func() {
 		It("returns an error", func() {
-			repository.shouldReturnInvalidURLs("https://youtube.com", "https://google.es")
+			repository.EXPECT().
+				FindLoadBalancedURLByHash(ctx, "someHash").
+				Return(&url.LoadBalancedURL{Hash: "someHash", LongURLs: []url.OriginalURL{
+					{
+						URL:     "https://google.es",
+						IsValid: false,
+					},
+					{
+						URL:     "https://youtube.com",
+						IsValid: false,
+					},
+				}}, nil)
 			longURL, err := multipleURLRedirector.ReturnAValidOriginalURL(ctx, "someHash")
 
 			Expect(err).To(MatchError(url.ErrValidURLNotFound))
@@ -71,7 +107,9 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 
 	When("the repository returns an error", func() {
 		It("returns the error from the repository", func() {
-			repository.shouldReturnError(errors.New("unknown error"))
+			repository.EXPECT().
+				FindLoadBalancedURLByHash(ctx, "someHash").
+				Return(nil, fmt.Errorf("unknown error"))
 			longURL, err := multipleURLRedirector.ReturnAValidOriginalURL(ctx, "someHash")
 
 			Expect(err).To(MatchError("unknown error"))
@@ -79,43 +117,3 @@ var _ = Describe("Domain / Redirect / LoadBalancer", func() {
 		})
 	})
 })
-
-func (f *FakeLoadBalancedURLsRepository) shouldReturnValidURLs(urls ...string) *FakeLoadBalancedURLsRepository {
-	f.validURLs = append(f.validURLs, urls...)
-	return f
-}
-
-func (f *FakeLoadBalancedURLsRepository) shouldReturnInvalidURLs(urls ...string) *FakeLoadBalancedURLsRepository {
-	f.invalidURLs = append(f.invalidURLs, urls...)
-	return f
-}
-func (f *FakeLoadBalancedURLsRepository) shouldReturnError(err error) *FakeLoadBalancedURLsRepository {
-	f.errorToReturn = err
-	return f
-}
-
-func (f *FakeLoadBalancedURLsRepository) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {
-	if f.errorToReturn != nil {
-		return nil, f.errorToReturn
-	}
-
-	originalURLs := []url.OriginalURL{}
-	for _, aURL := range f.validURLs {
-		originalURLs = append(originalURLs, url.OriginalURL{
-			URL:     aURL,
-			IsValid: true,
-		})
-	}
-	for _, aURL := range f.invalidURLs {
-		originalURLs = append(originalURLs, url.OriginalURL{
-			URL:     aURL,
-			IsValid: false,
-		})
-	}
-
-	return &url.LoadBalancedURL{Hash: hash, LongURLs: originalURLs}, nil
-}
-
-func (f *FakeLoadBalancedURLsRepository) SaveLoadBalancedURL(ctx context.Context, urls *url.LoadBalancedURL) error {
-	panic("implement me")
-}

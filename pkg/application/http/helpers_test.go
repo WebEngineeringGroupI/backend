@@ -53,21 +53,3 @@ func newTestingRouter(config http.Config) *testingRouter {
 		config: config,
 	}
 }
-
-type FakeMetrics struct {
-	singleURLMetrics int
-	fileURLMetrics   int
-	urlsProcessed    int
-}
-
-func (f *FakeMetrics) RecordSingleURLMetrics() {
-	f.singleURLMetrics++
-}
-
-func (f *FakeMetrics) RecordFileURLMetrics() {
-	f.fileURLMetrics++
-}
-
-func (f *FakeMetrics) RecordUrlsProcessed() {
-	f.urlsProcessed++
-}

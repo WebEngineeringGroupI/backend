@@ -6,7 +6,8 @@ generate: deps clean
 	go generate -x ./...
 
 clean:
-	find -name "mocks" -type d | xargs rm -rf
+	-find -name "mocks" -type d | xargs rm -rf
+	-find -name "*.coverprofile" -type f | xargs rm
 
 deps:
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
