@@ -58,6 +58,21 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 	}
 }
 
+func (s *server) ShortSingleURL(ctx context.Context, req *genproto.ShortSingleURLRequest) (*genproto.ShortSingleURLResponse, error) {
+	if req.GetUrl() == "" {
+		return nil, fmt.Errorf("empty URL provided")
+	}
+
+	shortURL, err := s.urlShortener.HashFromURL(req.GetUrl())
+	if err != nil {
+		return nil, err
+	}
+	return &genproto.ShortSingleURLResponse{
+		ShortUrl: fmt.Sprintf("%s/r/%s", s.baseDomain, shortURL.Hash),
+		LongUrl:  req.GetUrl(),
+	}, nil
+}
+
 func (s *server) BalanceURLs(ctx context.Context, req *genproto.BalanceURLsRequest) (*genproto.BalanceURLsResponse, error) {
 	//fixme(fede): use the ctx for cancellation
 	balancedURL, err := s.loadBalancer.ShortURLs(req.GetUrls())
