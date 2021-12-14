@@ -7,7 +7,9 @@ import (
 
 	genproto "github.com/WebEngineeringGroupI/genproto-go/api/v1alpha1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
@@ -20,12 +22,13 @@ type server struct {
 }
 
 func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServer) error {
-	for request, err := shortURLsServer.Recv(); ; request, err = shortURLsServer.Recv() {
+	for {
+		request, err := shortURLsServer.Recv()
 		if err == io.EOF {
 			return nil
 		}
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, err.Error())
 		}
 
 		shortURL, err := s.urlShortener.HashFromURL(request.Url)
@@ -39,7 +42,7 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 				},
 			})
 			if err != nil {
-				return err
+				return status.Errorf(codes.Internal, err.Error())
 			}
 			continue
 		}
@@ -53,19 +56,19 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 			},
 		})
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, err.Error())
 		}
 	}
 }
 
 func (s *server) ShortSingleURL(ctx context.Context, req *genproto.ShortSingleURLRequest) (*genproto.ShortSingleURLResponse, error) {
 	if req.GetUrl() == "" {
-		return nil, fmt.Errorf("empty URL provided")
+		return nil, status.Errorf(codes.FailedPrecondition, "empty URL provided")
 	}
 
 	shortURL, err := s.urlShortener.HashFromURL(req.GetUrl())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	return &genproto.ShortSingleURLResponse{
 		ShortUrl: fmt.Sprintf("%s/r/%s", s.baseDomain, shortURL.Hash),
@@ -77,7 +80,7 @@ func (s *server) BalanceURLs(ctx context.Context, req *genproto.BalanceURLsReque
 	//fixme(fede): use the ctx for cancellation
 	balancedURL, err := s.loadBalancer.ShortURLs(req.GetUrls())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	return &genproto.BalanceURLsResponse{ShortUrl: fmt.Sprintf("%s/lb/%s", s.baseDomain, balancedURL.Hash)}, nil
 }
