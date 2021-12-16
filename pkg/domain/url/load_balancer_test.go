@@ -28,15 +28,15 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 			Expect(loadBalancedURLs).To(Equal(&url.LoadBalancedURL{
 				Hash: "P3Z83Gpy",
 				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: false},
-					{URL: "anotherURL", IsValid: false},
+					{URL: "aURL", IsValid: true},
+					{URL: "anotherURL", IsValid: true},
 				},
 			}))
 			Expect(multipleShortURLsRepository.urls).To(ContainElement(Equal(&url.LoadBalancedURL{
 				Hash: "P3Z83Gpy",
 				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: false},
-					{URL: "anotherURL", IsValid: false},
+					{URL: "aURL", IsValid: true},
+					{URL: "anotherURL", IsValid: true},
 				},
 			})))
 		})

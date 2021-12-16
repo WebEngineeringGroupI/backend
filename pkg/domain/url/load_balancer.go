@@ -54,7 +54,7 @@ func originalURLsFromRaw(urls []string) []OriginalURL {
 	for _, aURL := range urls {
 		originalURLs = append(originalURLs, OriginalURL{
 			URL:     aURL,
-			IsValid: false,
+			IsValid: true,
 		})
 	}
 	return originalURLs
