@@ -10,8 +10,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 var _ = Describe("Domain / URL / Load Balancing", func() {
@@ -50,8 +51,8 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 			Expect(loadBalancedURLs).To(Equal(&url.LoadBalancedURL{
 				Hash: "P3Z83Gpy",
 				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: false},
-					{URL: "anotherURL", IsValid: false},
+					{URL: "aURL", IsValid: true},
+					{URL: "anotherURL", IsValid: true},
 				},
 			}))
 		})

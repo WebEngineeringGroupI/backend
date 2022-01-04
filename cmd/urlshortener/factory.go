@@ -5,7 +5,9 @@ import (
 	gohttp "net/http"
 	"os"
 	"strconv"
+	"strings"
 
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	gogrpc "google.golang.org/grpc"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
@@ -23,8 +25,21 @@ type factory struct {
 	postgresDBSingleton *postgres.DBSession
 }
 
-func (f *factory) NewHTTPRouter() gohttp.Handler {
-	return http.NewRouter(f.httpConfig())
+func (f *factory) NewHTTPAndGRPCWebRouter() gohttp.Handler {
+	httpRouter := http.NewRouter(f.httpConfig())
+	grpcWebServer := grpcweb.WrapServer(f.NewGRPCServer(),
+		grpcweb.WithWebsockets(true),
+		grpcweb.WithOriginFunc(func(origin string) bool {
+			return true
+		}),
+	)
+	return gohttp.HandlerFunc(func(writer gohttp.ResponseWriter, request *gohttp.Request) {
+		if grpcWebServer.IsAcceptableGrpcCorsRequest(request) || grpcWebServer.IsGrpcWebRequest(request) {
+			grpcWebServer.ServeHTTP(writer, request)
+			return
+		}
+		httpRouter.ServeHTTP(writer, request)
+	})
 }
 
 func (f *factory) NewGRPCServer() *gogrpc.Server {
@@ -63,7 +78,7 @@ func (f *factory) baseDomain() string {
 	if !isSet {
 		return "http://localhost:8080"
 	}
-	return baseDomain
+	return strings.TrimSuffix(baseDomain, "/")
 }
 
 func (f *factory) postgresConnectionDetails() postgres.ConnectionDetails {

@@ -97,5 +97,23 @@ var _ = Describe("Server", func() {
 				})
 			})
 		})
+
+		It("shortens a single URL", func() {
+			response, err := client.ShortSingleURL(ctx, &genproto.ShortSingleURLRequest{
+				Url: "https://google.com",
+			})
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(response.GetShortUrl()).To(Equal("https://example.com/r/cv6VxVdu"))
+			Expect(response.GetLongUrl()).To(Equal("https://google.com"))
+		})
+		When("the url is empty", func() {
+			It("returns an error", func() {
+				response, err := client.ShortSingleURL(ctx, &genproto.ShortSingleURLRequest{})
+
+				Expect(err).To(MatchError(ContainSubstring("empty URL provided")))
+				Expect(response).To(BeNil())
+			})
+		})
 	})
 })

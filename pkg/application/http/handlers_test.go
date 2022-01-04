@@ -92,8 +92,8 @@ var _ = Describe("Application / HTTP", func() {
 			loadBalancedURL, err := loadBalancerURLsRepository.FindLoadBalancedURLByHash(ctx, "5XEOqhb0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(loadBalancedURL.LongURLs).To(ConsistOf(
-				url.OriginalURL{URL: "https://google.es"},
-				url.OriginalURL{URL: "https://youtube.com"},
+				url.OriginalURL{URL: "https://google.es", IsValid: true},
+				url.OriginalURL{URL: "https://youtube.com", IsValid: true},
 			))
 		})
 

@@ -26,7 +26,7 @@ func main() {
 }
 
 func launchHTTPServer(ctx context.Context, factory *factory, wg *sync.WaitGroup) {
-	server := &http.Server{Addr: ":8080", Handler: factory.NewHTTPRouter()}
+	server := &http.Server{Addr: ":8080", Handler: factory.NewHTTPAndGRPCWebRouter()}
 
 	go func() {
 		log.Println("starting listening for HTTP requests on :8080")
