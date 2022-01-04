@@ -7,6 +7,7 @@ import (
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gogrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
@@ -25,7 +26,7 @@ func newTestingConnection(config grpc.Config) (*gogrpc.ClientConn, context.Cance
 
 	conn, err := gogrpc.DialContext(ctx, "bufnet", gogrpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
 		return listener.Dial()
-	}), gogrpc.WithInsecure(), gogrpc.WithBlock())
+	}), gogrpc.WithTransportCredentials(insecure.NewCredentials()), gogrpc.WithBlock())
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	go func() {
