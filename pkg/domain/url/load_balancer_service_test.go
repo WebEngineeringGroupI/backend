@@ -4,46 +4,52 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
-
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 )
 
 var _ = Describe("Domain / URL / Load Balancing", func() {
 	var (
-		loadBalancer                *url.LoadBalancer
+		loadBalancer                *url.LoadBalancerService
 		ctrl                        *gomock.Controller
-		multipleShortURLsRepository *mocks.MockLoadBalancedURLsRepository
-		emitter                     *domainmocks.MockEmitter
+		multipleShortURLsRepository *domainmocks.MockRepository
+		clock                       *domainmocks.MockClock
 		ctx                         context.Context
 	)
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		multipleShortURLsRepository = mocks.NewMockLoadBalancedURLsRepository(ctrl)
-		emitter = domainmocks.NewMockEmitter(ctrl)
-		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository, emitter)
+		multipleShortURLsRepository = domainmocks.NewMockRepository(ctrl)
+		clock = domainmocks.NewMockClock(ctrl)
+		loadBalancer = url.NewLoadBalancer(multipleShortURLsRepository, clock)
 		ctx = context.Background()
+
+		clock.EXPECT().Now().AnyTimes().Return(time.Time{})
 	})
+
 	AfterEach(func() {
 		ctrl.Finish()
 	})
 
 	When("a single URL is generated from multiple URLs", func() {
 		It("is correctly generated", func() {
-			multipleShortURLsRepository.EXPECT().SaveLoadBalancedURL(gomock.Any(), &url.LoadBalancedURL{
-				Hash: "P3Z83Gpy",
-				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: false},
-					{URL: "anotherURL", IsValid: false},
+			multipleShortURLsRepository.EXPECT().Save(ctx,
+				&url.LoadBalancedURLCreated{
+					Base: event.Base{
+						ID:      "P3Z83Gpy",
+						Version: 0,
+						At:      time.Time{},
+					},
+					OriginalURLs: []string{"aURL", "anotherURL"},
 				},
-			})
-			emitter.EXPECT().EmitLoadBalancedURLCreated(ctx, "P3Z83Gpy", []string{"aURL", "anotherURL"})
+			)
 
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL", "anotherURL"})
 
@@ -51,8 +57,8 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 			Expect(loadBalancedURLs).To(Equal(&url.LoadBalancedURL{
 				Hash: "P3Z83Gpy",
 				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: true},
-					{URL: "anotherURL", IsValid: true},
+					{URL: "aURL", IsValid: false},
+					{URL: "anotherURL", IsValid: false},
 				},
 			}))
 		})
@@ -60,28 +66,14 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 
 	When("the repository returns an error", func() {
 		It("returns the error from the repository", func() {
-			multipleShortURLsRepository.EXPECT().SaveLoadBalancedURL(gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
+			multipleShortURLsRepository.EXPECT().Save(gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL"})
 
 			Expect(err).To(MatchError("error saving load-balanced URLs into repository: unknown error"))
 			Expect(loadBalancedURLs).To(BeNil())
 		})
 	})
-	When("the emitter returns an error", func() {
-		It("returns the error", func() {
-			multipleShortURLsRepository.EXPECT().SaveLoadBalancedURL(gomock.Any(), &url.LoadBalancedURL{
-				Hash: "aSAQaNaB",
-				LongURLs: []url.OriginalURL{
-					{URL: "aURL", IsValid: false},
-				},
-			})
-			emitter.EXPECT().EmitLoadBalancedURLCreated(ctx, "aSAQaNaB", []string{"aURL"}).Return(errors.New("unknown error"))
-			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL"})
 
-			Expect(err).To(MatchError("error emitting event of load balanced URLs created: unknown error"))
-			Expect(loadBalancedURLs).To(BeNil())
-		})
-	})
 	When("the list of URLs is empty", func() {
 		It("returns an error", func() {
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{})

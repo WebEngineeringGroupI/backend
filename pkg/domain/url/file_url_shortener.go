@@ -16,10 +16,10 @@ type Formatter interface {
 }
 
 type FileURLShortener struct {
-	repository ShortURLRepository
+	repository event.Repository
 	formatter  Formatter
 	metrics    Metrics
-	emitter    event.Emitter
+	clock      event.Clock
 }
 
 func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) ([]ShortURL, error) {
@@ -33,36 +33,31 @@ func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) (
 
 	shortURLs = make([]ShortURL, 0, len(longURLs))
 	for _, longURL := range longURLs {
-		hash := hashFromURL(longURL)
-		isValid := false
-		shortURL := ShortURL{
-			Hash: hash,
-			OriginalURL: OriginalURL{
-				URL:     longURL,
-				IsValid: isValid,
+		events := []event.Event{
+			&ShortURLCreated{
+				Base: event.Base{
+					ID:      hashFromURL(longURL),
+					Version: 0,
+					At:      s.clock.Now(),
+				},
+				OriginalURL: longURL,
 			},
 		}
-
-		err := s.repository.SaveShortURL(ctx, &shortURL)
+		shortURLs = append(shortURLs, *shortURLFromEvents(events...))
+		err = s.repository.Save(ctx, events...)
 		if err != nil {
-			return nil, fmt.Errorf("unable to save URL '%s' to repository: %w", longURL, err)
+			return nil, fmt.Errorf("unable to save events to repository: %w", err)
 		}
-		err = s.emitter.EmitShortURLCreated(ctx, hash, longURL)
-		if err != nil {
-			return nil, fmt.Errorf("unable to emit short URL creation event: %w", err)
-		}
-
-		shortURLs = append(shortURLs, shortURL)
 	}
 
 	return shortURLs, nil
 }
 
-func NewFileURLShortener(repository ShortURLRepository, metrics Metrics, formatter Formatter, emitter event.Emitter) *FileURLShortener {
+func NewFileURLShortener(repository event.Repository, metrics Metrics, clock event.Clock, formatter Formatter) *FileURLShortener {
 	return &FileURLShortener{
 		repository: repository,
 		formatter:  formatter,
 		metrics:    metrics,
-		emitter:    emitter,
+		clock:      clock,
 	}
 }

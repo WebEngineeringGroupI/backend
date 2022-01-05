@@ -14,10 +14,8 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/clock"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/uuid"
 )
 
 type factory struct {
@@ -50,19 +48,17 @@ func (f *factory) httpConfig() http.Config {
 	return http.Config{
 		BaseDomain:                 f.baseDomain(),
 		CustomMetrics:              f.customMetrics(),
-		ShortURLRepository:         f.newPostgresDB(),
-		LoadBalancedURLsRepository: f.newPostgresDB(),
-		EventEmitter:               f.eventEmitter(),
+		ShortURLRepository:         f.newShortURLRepository(),
+		LoadBalancedURLsRepository: f.newLoadBalancedURLsRepository(),
 	}
 }
 
 func (f *factory) grpcConfig() grpc.Config {
 	return grpc.Config{
 		BaseDomain:                 f.baseDomain(),
-		ShortURLRepository:         f.newPostgresDB(),
+		ShortURLRepository:         f.newShortURLRepository(),
 		CustomMetrics:              f.customMetrics(),
-		LoadBalancedURLsRepository: f.newPostgresDB(),
-		EventEmitter:               f.eventEmitter(),
+		LoadBalancedURLsRepository: f.newLoadBalancedURLsRepository(),
 	}
 }
 
@@ -116,8 +112,12 @@ func (f *factory) newPostgresDB() *postgres.DBSession {
 	return f.postgresDBSingleton
 }
 
-func (f *factory) eventEmitter() event.Emitter {
-	return event.NewEmitter(f.newPostgresDB(), clock.NewFromSystem(), uuid.NewGenerator())
+func (f *factory) newShortURLRepository() event.Repository {
+	return event.NewRepository(&url.ShortURL{}, f.newPostgresDB())
+}
+
+func (f *factory) newLoadBalancedURLsRepository() event.Repository {
+	return event.NewRepository(&url.LoadBalancedURL{}, f.newPostgresDB())
 }
 
 func newFactory() *factory {

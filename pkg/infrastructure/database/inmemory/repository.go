@@ -14,7 +14,7 @@ type Repository struct {
 }
 
 func (f *Repository) SaveEvent(ctx context.Context, event event.Event) error {
-	f.eventOutbox[event.ID()] = event
+	f.eventOutbox[event.EntityID()] = event
 	return nil
 }
 

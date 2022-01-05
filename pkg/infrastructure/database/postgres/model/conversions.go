@@ -71,7 +71,7 @@ func ClickDetailsToDomain(clickModel *Clickdetails) *click.Details {
 func DomainEventFromDomain(event event.Event) DomainEvent {
 	data, _ := json.Marshal(event)
 	result := DomainEvent{
-		ID:        event.ID(),
+		ID:        event.EntityID(),
 		CreatedAt: event.HappenedOn(),
 		Type:      reflect.TypeOf(event).String(),
 		Payload:   data,
@@ -81,8 +81,8 @@ func DomainEventFromDomain(event event.Event) DomainEvent {
 
 func DomainEventToDomain(domainEvent DomainEvent) (event.Event, error) {
 	switch domainEvent.Type {
-	case reflect.TypeOf(&event.ShortURLCreated{}).String():
-		var shortURLCreated *event.ShortURLCreated
+	case reflect.TypeOf(&url.ShortURLCreated{}).String():
+		var shortURLCreated *url.ShortURLCreated
 		err := json.Unmarshal(domainEvent.Payload, &shortURLCreated)
 		if err != nil {
 			return nil, err

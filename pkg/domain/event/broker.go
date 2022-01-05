@@ -3,15 +3,7 @@ package event
 import (
 	"reflect"
 	"sync"
-	"time"
 )
-
-//Event represents something that has happened in the domain and can be sent
-//through the Broker and handled by a Subscriber
-type Event interface {
-	ID() string
-	HappenedOn() time.Time
-}
 
 //Subscriber is a component that's able to receive an Event and will handle it.
 //A Subscriber can be subscribed to the Broker through Broker.Subscribe to
@@ -39,7 +31,7 @@ func (b *Broker) Publish(event Event) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
-	if subscribers, ok := b.eventSubscriberMap[typeOf(event)]; ok {
+	if subscribers, ok := b.eventSubscriberMap[TypeOf(event)]; ok {
 		for _, subscriber := range subscribers {
 			go subscriber.HandleEvent(event)
 		}
@@ -49,8 +41,13 @@ func (b *Broker) Publish(event Event) {
 	}
 }
 
-func typeOf(event Event) string {
-	return reflect.TypeOf(event).String()
+// TypeOf is a helper func that extracts the event type of the event along with the reflect. TypeOf of the event.
+func TypeOf(event Event) string {
+	t := reflect.TypeOf(event)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t.Name()
 }
 
 //Subscribe subscribes a Subscriber for the specified event types passed as parameter.
@@ -68,7 +65,7 @@ func (b *Broker) Subscribe(subscriber Subscriber, eventsToSubscribe ...Event) {
 	}
 
 	for _, event := range eventsToSubscribe {
-		eventType := typeOf(event)
+		eventType := TypeOf(event)
 		if b.isSubscriberAlreadySubscribedToEventType(subscriber, eventType) {
 			continue
 		}
@@ -89,7 +86,7 @@ func (b *Broker) Unsubscribe(subscriberToUnsubscribe Subscriber, events ...Event
 	}
 
 	for _, event := range events {
-		b.unsubscribeForSingleEventType(subscriberToUnsubscribe, typeOf(event))
+		b.unsubscribeForSingleEventType(subscriberToUnsubscribe, TypeOf(event))
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"xorm.io/xorm"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/model"
 )
@@ -34,6 +35,14 @@ func (d *ConnectionDetails) ConnectionString() string {
 
 type DBSession struct {
 	session *xorm.Session
+}
+
+func (d *DBSession) Append(ctx context.Context, identity string, events ...event.Event) error {
+	panic("implement me")
+}
+
+func (d *DBSession) Load(ctx context.Context, identity string) (*event.Stream, error) {
+	panic("implement me")
 }
 
 func (d *DBSession) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {

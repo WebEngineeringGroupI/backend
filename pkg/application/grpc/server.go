@@ -13,13 +13,14 @@ import (
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/clock"
 )
 
 type server struct {
 	genproto.UnimplementedURLShorteningServer
 	baseDomain   string
 	urlShortener *url.SingleURLShortener
-	loadBalancer *url.LoadBalancer
+	loadBalancer *url.LoadBalancerService
 }
 
 func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServer) error {
@@ -88,18 +89,17 @@ func (s *server) BalanceURLs(ctx context.Context, req *genproto.BalanceURLsReque
 
 type Config struct {
 	BaseDomain                 string
-	ShortURLRepository         url.ShortURLRepository
+	ShortURLRepository         event.Repository
 	CustomMetrics              url.Metrics
-	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
-	EventEmitter               event.Emitter
+	LoadBalancedURLsRepository event.Repository
 }
 
 func NewServer(config Config) *grpc.Server {
 	grpcServer := grpc.NewServer()
 	srv := &server{
 		baseDomain:   config.BaseDomain,
-		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.CustomMetrics, config.EventEmitter),
-		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository, config.EventEmitter),
+		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, clock.NewFromSystem(), config.CustomMetrics),
+		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository, clock.NewFromSystem()),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)

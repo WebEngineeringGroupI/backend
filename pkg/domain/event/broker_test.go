@@ -2,7 +2,6 @@ package event_test
 
 import (
 	"sync"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -152,34 +151,13 @@ func (f *FakeSubscriber) HandleEvent(event event.Event) {
 }
 
 type FakeEvent1 struct {
-}
-
-func (f *FakeEvent1) ID() string {
-	return "id"
-}
-
-func (f *FakeEvent1) HappenedOn() time.Time {
-	return time.Time{}
+	event.Base
 }
 
 type FakeEvent2 struct {
-}
-
-func (f *FakeEvent2) ID() string {
-	return "id"
-}
-
-func (f *FakeEvent2) HappenedOn() time.Time {
-	return time.Time{}
+	event.Base
 }
 
 type FakeEvent3 struct {
-}
-
-func (f *FakeEvent3) ID() string {
-	return "id"
-}
-
-func (f *FakeEvent3) HappenedOn() time.Time {
-	return time.Time{}
+	event.Base
 }

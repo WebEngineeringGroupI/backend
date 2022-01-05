@@ -10,34 +10,34 @@ import (
 	gogrpc "google.golang.org/grpc"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	urlmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/eventstore/inmemory"
 )
 
 var _ = Describe("Server", func() {
 	var (
-		ctrl            *gomock.Controller
-		metrics         *urlmocks.MockMetrics
-		emitter         *mocks.MockEmitter
-		connection      gogrpc.ClientConnInterface
-		closeConnection context.CancelFunc
+		ctrl                       *gomock.Controller
+		metrics                    *urlmocks.MockMetrics
+		connection                 gogrpc.ClientConnInterface
+		closeConnection            context.CancelFunc
+		shortURLRepository         event.Repository
+		loadBalancerURLsRepository event.Repository
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		metrics = urlmocks.NewMockMetrics(ctrl)
-		emitter = mocks.NewMockEmitter(ctrl)
+		shortURLRepository = event.NewRepository(&url.ShortURL{}, inmemory.NewEventStore())
+		loadBalancerURLsRepository = event.NewRepository(&url.LoadBalancedURL{}, inmemory.NewEventStore())
+
 		connection, closeConnection = newTestingConnection(grpc.Config{
 			BaseDomain:                 "https://example.com",
 			CustomMetrics:              metrics,
-			ShortURLRepository:         inmemory.NewRepository(),
-			LoadBalancedURLsRepository: inmemory.NewRepository(),
-			EventEmitter:               emitter,
+			ShortURLRepository:         shortURLRepository,
+			LoadBalancedURLsRepository: loadBalancerURLsRepository,
 		})
-
-		emitter.EXPECT().EmitShortURLCreated(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		emitter.EXPECT().EmitLoadBalancedURLCreated(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		metrics.EXPECT().RecordSingleURLMetrics().AnyTimes()
 		metrics.EXPECT().RecordFileURLMetrics().AnyTimes()
 	})

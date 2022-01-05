@@ -13,10 +13,9 @@ import (
 
 type Config struct {
 	BaseDomain                 string
-	ShortURLRepository         url.ShortURLRepository
+	ShortURLRepository         event.Repository
 	CustomMetrics              url.Metrics
-	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
-	EventEmitter               event.Emitter
+	LoadBalancedURLsRepository event.Repository
 }
 
 func NewRouter(config Config) http.Handler {
