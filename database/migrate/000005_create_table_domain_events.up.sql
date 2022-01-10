@@ -1,4 +1,4 @@
-BEGIN TRANSACTION READ WRITE;
+BEGIN TRANSACTION;
 
 CREATE TABLE IF NOT EXISTS domain_event
 (
@@ -16,5 +16,16 @@ CREATE INDEX IF NOT EXISTS id
 ALTER TABLE domain_event
     ADD CONSTRAINT id_version
         UNIQUE USING INDEX id_version;
+
+CREATE OR REPLACE RULE rule_domain_event_nodelete AS
+    ON DELETE TO domain_event DO INSTEAD NOTHING;
+CREATE OR REPLACE RULE rule_domain_event_noupdate AS
+    ON UPDATE TO domain_event DO INSTEAD NOTHING;
+
+CREATE TABLE IF NOT EXISTS domain_event_outbox
+(
+    id      SERIAL PRIMARY KEY,
+    payload JSON NOT NULL
+);
 
 COMMIT TRANSACTION;

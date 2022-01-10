@@ -26,7 +26,7 @@ type Repository interface {
 
 // repository provides the primary abstraction to saving and loading events from a specific aggregate
 type repository struct {
-	broker    *Broker
+	broker    Broker
 	prototype reflect.Type
 	store     Store
 }
@@ -42,7 +42,12 @@ func (r *repository) Save(ctx context.Context, events ...Event) error {
 		return nil
 	}
 	aggregateID := events[0].EntityID()
-	return r.store.Append(ctx, aggregateID, events...)
+	err := r.store.Append(ctx, aggregateID, events...)
+
+	for _, event := range events {
+		r.broker.Publish(event)
+	}
+	return err
 }
 
 // Load retrieves the specified aggregate from the underlying store
@@ -70,14 +75,14 @@ func (r *repository) Load(ctx context.Context, entityID string) (Entity, int, er
 }
 
 // NewRepository creates a new repository
-func NewRepository(prototype Entity, store Store) Repository {
+func NewRepository(prototype Entity, store Store, broker Broker) Repository {
 	eventType := reflect.TypeOf(prototype)
 	if eventType.Kind() == reflect.Ptr {
 		eventType = eventType.Elem()
 	}
 
 	return &repository{
-		broker:    NewBroker(),
+		broker:    broker,
 		prototype: eventType,
 		store:     store,
 	}

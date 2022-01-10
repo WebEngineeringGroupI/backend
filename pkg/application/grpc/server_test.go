@@ -29,8 +29,8 @@ var _ = Describe("Server", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		metrics = urlmocks.NewMockMetrics(ctrl)
-		shortURLRepository = event.NewRepository(&url.ShortURL{}, inmemory.NewEventStore())
-		loadBalancerURLsRepository = event.NewRepository(&url.LoadBalancedURL{}, inmemory.NewEventStore())
+		shortURLRepository = event.NewRepository(&url.ShortURL{}, inmemory.NewEventStore(), event.NewBroker())
+		loadBalancerURLsRepository = event.NewRepository(&url.LoadBalancedURL{}, inmemory.NewEventStore(), event.NewBroker())
 
 		connection, closeConnection = newTestingConnection(grpc.Config{
 			BaseDomain:                 "https://example.com",

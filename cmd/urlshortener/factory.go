@@ -21,7 +21,8 @@ import (
 )
 
 type factory struct {
-	metricsSingleton url.Metrics
+	metricsSingleton     url.Metrics
+	eventBrokerSingleton event.Broker
 }
 
 func (f *factory) NewHTTPAndGRPCWebRouter() gohttp.Handler {
@@ -115,14 +116,21 @@ func (f *factory) newShortURLRepository() event.Repository {
 		&url.ShortURLCreated{},
 		&url.ShortURLVerified{},
 		&url.ShortURLClicked{},
-	)))
+	)), f.eventBroker())
 }
 
 func (f *factory) newLoadBalancedURLsRepository() event.Repository {
 	return event.NewRepository(&url.LoadBalancedURL{}, f.newPostgresDB(json.NewSerializer(
 		&url.LoadBalancedURLCreated{},
 		&url.LoadBalancedURLVerified{},
-	)))
+	)), f.eventBroker())
+}
+
+func (f *factory) eventBroker() event.Broker {
+	if f.eventBrokerSingleton == nil {
+		f.eventBrokerSingleton = event.NewBroker()
+	}
+	return f.eventBrokerSingleton
 }
 
 func newFactory() *factory {

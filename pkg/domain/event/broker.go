@@ -19,7 +19,26 @@ type Subscriber interface {
 //
 //Subscribers can unsubscribe to all events or single events, but there's no support for a subscriber that
 //subscribes to all events, and then unsubscribes to only some of them.
-type Broker struct {
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
+type Broker interface {
+	//Publish publishes an event to all subscribers that are subscribed for this event type, or all event types.
+	Publish(event Event)
+
+	//Subscribe subscribes a Subscriber for the specified event types passed as parameter.
+	//If no events types are specified, the subscriber is subscribed to all event types;
+	//keep in mind that once a subscriber is subscribed to all event types, it cannot be unsubscribed to
+	//a single event type.
+	//Duplicated subscriptions to the same event type will be ignored.
+	Subscribe(subscriber Subscriber, events ...Event)
+
+	//Unsubscribe will unsubscribe a Subscriber from the specified event types,
+	//or all of them if no event type is specified.
+	//Keep in mind that a Subscriber that's subscribed to all event types, cannot be
+	//unsubscribed to a single event types.
+	Unsubscribe(subscriber Subscriber, events ...Event)
+}
+
+type broker struct {
 	mutex              sync.RWMutex
 	eventSubscriberMap map[string][]Subscriber
 }
@@ -27,7 +46,7 @@ type Broker struct {
 const allEventsID = "all_events"
 
 //Publish publishes an event to all subscribers that are subscribed for this event type, or all event types.
-func (b *Broker) Publish(event Event) {
+func (b *broker) Publish(event Event) {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 
@@ -55,7 +74,7 @@ func TypeOf(event Event) string {
 //keep in mind that once a subscriber is subscribed to all event types, it cannot be unsubscribed to
 //a single event type.
 //Duplicated subscriptions to the same event type will be ignored.
-func (b *Broker) Subscribe(subscriber Subscriber, eventsToSubscribe ...Event) {
+func (b *broker) Subscribe(subscriber Subscriber, eventsToSubscribe ...Event) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -77,7 +96,7 @@ func (b *Broker) Subscribe(subscriber Subscriber, eventsToSubscribe ...Event) {
 //or all of them if no event type is specified.
 //Keep in mind that a Subscriber that's subscribed to all event types, cannot be
 //unsubscribed to a single event types.
-func (b *Broker) Unsubscribe(subscriberToUnsubscribe Subscriber, events ...Event) {
+func (b *broker) Unsubscribe(subscriberToUnsubscribe Subscriber, events ...Event) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -90,7 +109,7 @@ func (b *Broker) Unsubscribe(subscriberToUnsubscribe Subscriber, events ...Event
 	}
 }
 
-func (b *Broker) isSubscriberAlreadySubscribedToEventType(subscriber Subscriber, eventType string) bool {
+func (b *broker) isSubscriberAlreadySubscribedToEventType(subscriber Subscriber, eventType string) bool {
 	for _, subscriberForAllEventTypes := range b.eventSubscriberMap[allEventsID] {
 		if subscriberForAllEventTypes == subscriber {
 			return true
@@ -110,7 +129,7 @@ func (b *Broker) isSubscriberAlreadySubscribedToEventType(subscriber Subscriber,
 	return false
 }
 
-func (b *Broker) unsubscribeFromAllEvents(subscriberToUnsubscribe Subscriber) {
+func (b *broker) unsubscribeFromAllEvents(subscriberToUnsubscribe Subscriber) {
 	for eventType, subscribersForAType := range b.eventSubscriberMap {
 		newSubscribersListForAType := make([]Subscriber, 0, len(subscribersForAType))
 		for _, singleSubscriberForAType := range subscribersForAType {
@@ -122,7 +141,7 @@ func (b *Broker) unsubscribeFromAllEvents(subscriberToUnsubscribe Subscriber) {
 	}
 }
 
-func (b *Broker) unsubscribeForSingleEventType(subscriberToUnsubscribe Subscriber, eventType string) {
+func (b *broker) unsubscribeForSingleEventType(subscriberToUnsubscribe Subscriber, eventType string) {
 	if subscribers, ok := b.eventSubscriberMap[eventType]; ok {
 		newSubscribersList := make([]Subscriber, 0, len(subscribers))
 		for _, subscriberInList := range subscribers {
@@ -135,8 +154,8 @@ func (b *Broker) unsubscribeForSingleEventType(subscriberToUnsubscribe Subscribe
 }
 
 //NewBroker creates a new broker that will handle subscriptions and event sending.
-func NewBroker() *Broker {
-	return &Broker{
+func NewBroker() Broker {
+	return &broker{
 		eventSubscriberMap: map[string][]Subscriber{
 			allEventsID: {},
 		},

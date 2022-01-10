@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("Domain / Broker", func() {
 	var (
-		broker         *event.Broker
+		broker         event.Broker
 		fakeSubscriber *FakeSubscriber
 	)
 	BeforeEach(func() {

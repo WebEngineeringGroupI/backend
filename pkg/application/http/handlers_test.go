@@ -38,8 +38,8 @@ var _ = Describe("Application / HTTP", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		metrics = urlmocks.NewMockMetrics(ctrl)
 
-		shortURLRepository = event.NewRepository(&url.ShortURL{}, inmemory.NewEventStore())
-		loadBalancerURLsRepository = event.NewRepository(&url.LoadBalancedURL{}, inmemory.NewEventStore())
+		shortURLRepository = event.NewRepository(&url.ShortURL{}, inmemory.NewEventStore(), event.NewBroker())
+		loadBalancerURLsRepository = event.NewRepository(&url.LoadBalancedURL{}, inmemory.NewEventStore(), event.NewBroker())
 		r = newTestingRouter(http.Config{
 			BaseDomain:                 "http://example.com",
 			ShortURLRepository:         shortURLRepository,

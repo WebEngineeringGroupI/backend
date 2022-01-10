@@ -70,6 +70,14 @@ func (b *LoadBalancerService) ShortURLs(ctx context.Context, urls []string) (*Lo
 	}
 
 	hash := hashFromURLs(urls)
+	entity, _, err := b.repository.Load(ctx, hash)
+	if err == nil {
+		loadBalancedURL, ok := entity.(*LoadBalancedURL)
+		if !ok {
+			return nil, fmt.Errorf("unknown entity type loaded while load balancing urls: %w", err)
+		}
+		return loadBalancedURL, nil
+	}
 
 	events := []event.Event{
 		&LoadBalancedURLCreated{
@@ -82,7 +90,7 @@ func (b *LoadBalancerService) ShortURLs(ctx context.Context, urls []string) (*Lo
 		},
 	}
 
-	err := b.repository.Save(ctx, events...)
+	err = b.repository.Save(ctx, events...)
 	if err != nil {
 		return nil, fmt.Errorf("error saving load-balanced URLs into repository: %w", err)
 	}

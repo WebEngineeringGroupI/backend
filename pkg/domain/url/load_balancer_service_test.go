@@ -50,6 +50,7 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 					OriginalURLs: []string{"aURL", "anotherURL"},
 				},
 			)
+			multipleShortURLsRepository.EXPECT().Load(ctx, "P3Z83Gpy").Return(nil, 0, url.ErrValidURLNotFound)
 
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL", "anotherURL"})
 
@@ -66,6 +67,7 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 
 	When("the repository returns an error", func() {
 		It("returns the error from the repository", func() {
+			multipleShortURLsRepository.EXPECT().Load(ctx, "aSAQaNaB").Return(nil, 0, url.ErrValidURLNotFound)
 			multipleShortURLsRepository.EXPECT().Save(gomock.Any(), gomock.Any()).Return(errors.New("unknown error"))
 			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL"})
 
@@ -89,6 +91,29 @@ var _ = Describe("Domain / URL / Load Balancing", func() {
 
 			Expect(err).To(MatchError(url.ErrTooMuchMultipleURLs))
 			Expect(multipleShortURLs).To(BeNil())
+		})
+	})
+
+	When("the load balanced URL already exists in the database", func() {
+		It("returns the load balanced URL and doesn't try to save it again", func() {
+			multipleShortURLsRepository.EXPECT().Load(ctx, "P3Z83Gpy").Return(&url.LoadBalancedURL{
+				Hash: "P3Z83Gpy",
+				LongURLs: []url.OriginalURL{
+					{URL: "aURL", IsValid: false},
+					{URL: "anotherURL", IsValid: false},
+				},
+			}, 0, nil)
+
+			loadBalancedURLs, err := loadBalancer.ShortURLs(ctx, []string{"aURL", "anotherURL"})
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(loadBalancedURLs).To(Equal(&url.LoadBalancedURL{
+				Hash: "P3Z83Gpy",
+				LongURLs: []url.OriginalURL{
+					{URL: "aURL", IsValid: false},
+					{URL: "anotherURL", IsValid: false},
+				},
+			}))
 		})
 	})
 })

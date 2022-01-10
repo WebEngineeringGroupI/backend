@@ -42,17 +42,27 @@ type DomainEvent struct {
 	Payload []byte `xorm:"'payload'"`
 }
 
+type DomainEventOutbox struct {
+	ID      int    `xorm:"'id' autoincr"`
+	Payload []byte `xorm:"'payload'"`
+}
+
 func (d *DB) Append(ctx context.Context, identity string, events ...event.Event) error {
 	serializedEvents := make([]interface{}, 0, len(events))
+	outboxEvents := make([]interface{}, 0, len(events))
+
 	for _, event := range events {
-		data, err := d.serializer.MarshalEvent(event)
+		payload, err := d.serializer.MarshalEvent(event)
 		if err != nil {
 			return fmt.Errorf("unable to save event in the database: %w", err)
 		}
 		serializedEvents = append(serializedEvents, DomainEvent{
 			ID:      identity,
 			Version: event.EventVersion(),
-			Payload: data,
+			Payload: payload,
+		})
+		outboxEvents = append(outboxEvents, DomainEventOutbox{
+			Payload: payload,
 		})
 	}
 
@@ -64,6 +74,12 @@ func (d *DB) Append(ctx context.Context, identity string, events ...event.Event)
 		if err != nil {
 			return nil, fmt.Errorf("unable to insert events in database: %w", err)
 		}
+
+		_, err = session.Context(ctx).Insert(outboxEvents...)
+		if err != nil {
+			return nil, fmt.Errorf("unable to insert outbox events: %w", err)
+		}
+
 		return nil, nil
 	})
 
