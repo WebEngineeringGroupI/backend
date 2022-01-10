@@ -8,10 +8,8 @@ import (
 	"github.com/lib/pq"
 	"xorm.io/xorm"
 
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/click"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
-	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/model"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer"
 )
 
 type ConnectionDetails struct {
@@ -33,147 +31,96 @@ func (d *ConnectionDetails) ConnectionString() string {
 		d.SSLMode)
 }
 
-type DBSession struct {
-	session *xorm.Session
+type DB struct {
+	engine     *xorm.Engine
+	serializer serializer.Serializer
 }
 
-func (d *DBSession) Append(ctx context.Context, identity string, events ...event.Event) error {
-	panic("implement me")
+type DomainEvent struct {
+	ID      string `xorm:"'id'"`
+	Version int    `xorm:"'version'"`
+	Payload []byte `xorm:"'payload'"`
 }
 
-func (d *DBSession) Load(ctx context.Context, identity string) (*event.Stream, error) {
-	panic("implement me")
-}
-
-func (d *DBSession) FindLoadBalancedURLByHash(ctx context.Context, hash string) (*url.LoadBalancedURL, error) {
-	var result model.LoadBalancedUrlList
-	err := d.session.Context(ctx).Find(&result, &model.LoadBalancedUrl{Hash: hash})
-	if len(result) == 0 {
-		return nil, url.ErrValidURLNotFound // FIXME(fede): Should we use another kind of error here?
+func (d *DB) Append(ctx context.Context, identity string, events ...event.Event) error {
+	serializedEvents := make([]interface{}, 0, len(events))
+	for _, event := range events {
+		data, err := d.serializer.MarshalEvent(event)
+		if err != nil {
+			return fmt.Errorf("unable to save event in the database: %w", err)
+		}
+		serializedEvents = append(serializedEvents, DomainEvent{
+			ID:      identity,
+			Version: event.EventVersion(),
+			Payload: data,
+		})
 	}
+
+	_, err := d.engine.Transaction(func(session *xorm.Session) (interface{}, error) {
+		_, err := session.Context(ctx).Insert(serializedEvents...)
+		if isDuplicateError(err) {
+			return nil, fmt.Errorf("unable to insert event in database, check the version of the events: %w", err)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("unable to insert events in database: %w", err)
+		}
+		return nil, nil
+	})
+
+	return err
+}
+
+func (d *DB) Load(ctx context.Context, identity string) (*event.Stream, error) {
+	resultInterface, err := d.engine.Transaction(func(session *xorm.Session) (interface{}, error) {
+		var result []DomainEvent
+		err := session.Context(ctx).Find(&result, &DomainEvent{ID: identity})
+		if err != nil {
+			return nil, fmt.Errorf("unknown error retrieving short url: %w", err)
+		}
+		if len(result) == 0 {
+			return nil, event.ErrEntityNotFound
+		}
+		return result, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("unknown error retrieving short url: %w", err)
+		return nil, err
 	}
 
-	return model.LoadBalancedURLToDomain(result), nil
+	result, ok := resultInterface.([]DomainEvent)
+	if !ok {
+		return nil, fmt.Errorf("result from transaction is not slice of domain events")
+	}
+
+	events := make([]event.Event, 0, len(result))
+	for _, domainEvent := range result {
+		event, err := d.serializer.UnmarshalEvent(domainEvent.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving event from database: %w", err)
+		}
+		events = append(events, event)
+	}
+
+	return event.StreamFrom(events), nil
 }
 
-func (d *DBSession) SaveLoadBalancedURL(ctx context.Context, aURL *url.LoadBalancedURL) error {
-	dbURL := model.LoadBalancedURLFromDomain(aURL)
-	_, err := d.session.Context(ctx).Insert(&dbURL)
-	if d.isDuplicateError(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("unable to save load-balanced URL: %w", err)
-	}
-	return nil
-}
-
-var (
-	errDuplicateConstraintViolation pq.ErrorCode = "23505"
-)
-
-func (d *DBSession) SaveShortURL(ctx context.Context, url *url.ShortURL) error {
-	shortURL := model.ShortURLFromDomain(url)
-	_, err := d.session.Context(ctx).Insert(&shortURL)
-	if d.isDuplicateError(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("unable to save short URL: %w", err)
-	}
-	return nil
-}
-
-func (d *DBSession) FindShortURLByHash(ctx context.Context, hash string) (*url.ShortURL, error) {
-	shortURL := model.Shorturl{Hash: hash}
-	exists, err := d.session.Context(ctx).Get(&shortURL)
-	if !exists {
-		return nil, url.ErrShortURLNotFound
-	}
-	if err != nil {
-		return nil, fmt.Errorf("unknown error retrieving short url: %w", err)
-	}
-
-	return model.ShortURLToDomain(shortURL), nil
-}
-
-func (d *DBSession) SaveClick(ctx context.Context, click *click.Details) error {
-	clickModel := model.ClickDetailsFromDomain(click)
-	_, err := d.session.Context(ctx).Insert(&clickModel)
-	if err != nil {
-		return fmt.Errorf("unknow error saving click: %w", err)
-	}
-	return nil
-}
-
-func (d *DBSession) FindClicksByHash(ctx context.Context, hash string) ([]*click.Details, error) {
-	var clicksModel []*model.Clickdetails
-	err := d.session.Context(ctx).Find(&clicksModel, model.Clickdetails{Hash: hash})
-	if err != nil {
-		return nil, fmt.Errorf("unknow error finding clicks by hash: %w", err)
-	}
-	var clicks []*click.Details
-	for _, clickModel := range clicksModel {
-		clicks = append(clicks, model.ClickDetailsToDomain(clickModel))
-	}
-	return clicks, nil
-}
-
-func (d *DBSession) Close() error {
-	return d.session.Close()
-}
-
-func (d *DBSession) isDuplicateError(err error) bool {
+func isDuplicateError(err error) bool {
 	var pqError *pq.Error
 	if errors.As(err, &pqError) {
-		if pqError.Code == errDuplicateConstraintViolation {
+		if pqError.Code == ("23505") {
 			return true
 		}
 	}
 	return false
 }
 
-func newDBSession(session *xorm.Session) *DBSession {
-	return &DBSession{session: session}
-}
-
-type DB struct {
-	engine *xorm.Engine
-}
-
-func NewDB(connectionDetails ConnectionDetails) (*DB, error) {
+func NewDB(connectionDetails *ConnectionDetails, serializer serializer.Serializer) (*DB, error) {
 	engine, err := xorm.NewEngine("postgres", connectionDetails.ConnectionString())
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection to database: %w", err)
 	}
 
 	return &DB{
-		engine: engine,
+		engine:     engine,
+		serializer: serializer,
 	}, nil
-}
-
-func (t *DB) Transactional(f func(*DBSession) (interface{}, error)) (interface{}, error) {
-	session := t.engine.NewSession()
-	defer session.Close()
-
-	if err := session.Begin(); err != nil {
-		return nil, err
-	}
-
-	result, err := f(newDBSession(session))
-	if err != nil {
-		return result, err
-	}
-
-	if err := session.Commit(); err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-func (t *DB) Session() *DBSession {
-	return newDBSession(t.engine.NewSession())
 }

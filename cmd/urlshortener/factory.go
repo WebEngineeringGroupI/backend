@@ -15,12 +15,13 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 )
 
 type factory struct {
-	metricsSingleton    url.Metrics
-	postgresDBSingleton *postgres.DBSession
+	metricsSingleton url.Metrics
 }
 
 func (f *factory) NewHTTPAndGRPCWebRouter() gohttp.Handler {
@@ -77,13 +78,13 @@ func (f *factory) baseDomain() string {
 	return strings.TrimSuffix(baseDomain, "/")
 }
 
-func (f *factory) postgresConnectionDetails() postgres.ConnectionDetails {
+func (f *factory) postgresConnectionDetails() *postgres.ConnectionDetails {
 	dbPort, err := strconv.Atoi(f.mandatoryEnvVarValue("DB_PORT"))
 	if err != nil {
 		log.Fatalf("unable to parse DB_PORT, make sure it is defined and is a valid integer")
 	}
 
-	return postgres.ConnectionDetails{
+	return &postgres.ConnectionDetails{
 		User:     f.mandatoryEnvVarValue("DB_USER"),
 		Pass:     f.mandatoryEnvVarValue("DB_PASS"),
 		Host:     f.mandatoryEnvVarValue("DB_HOST"),
@@ -101,23 +102,27 @@ func (f *factory) mandatoryEnvVarValue(variable string) string {
 	return value
 }
 
-func (f *factory) newPostgresDB() *postgres.DBSession {
-	if f.postgresDBSingleton == nil {
-		db, err := postgres.NewDB(f.postgresConnectionDetails())
-		if err != nil {
-			log.Fatalf("unable to create the database connection: %s", err)
-		}
-		f.postgresDBSingleton = db.Session()
+func (f *factory) newPostgresDB(eventSerializer serializer.Serializer) *postgres.DB {
+	db, err := postgres.NewDB(f.postgresConnectionDetails(), eventSerializer)
+	if err != nil {
+		log.Fatalf("unable to create the database connection: %s", err)
 	}
-	return f.postgresDBSingleton
+	return db
 }
 
 func (f *factory) newShortURLRepository() event.Repository {
-	return event.NewRepository(&url.ShortURL{}, f.newPostgresDB())
+	return event.NewRepository(&url.ShortURL{}, f.newPostgresDB(json.NewSerializer(
+		&url.ShortURLCreated{},
+		&url.ShortURLVerified{},
+		&url.ShortURLClicked{},
+	)))
 }
 
 func (f *factory) newLoadBalancedURLsRepository() event.Repository {
-	return event.NewRepository(&url.LoadBalancedURL{}, f.newPostgresDB())
+	return event.NewRepository(&url.LoadBalancedURL{}, f.newPostgresDB(json.NewSerializer(
+		&url.LoadBalancedURLCreated{},
+		&url.LoadBalancedURLVerified{},
+	)))
 }
 
 func newFactory() *factory {

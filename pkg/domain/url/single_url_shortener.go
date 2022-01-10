@@ -65,10 +65,20 @@ var (
 func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (*ShortURL, error) {
 	s.metrics.RecordSingleURLMetrics()
 
+	urlHash := hashFromURL(aLongURL)
+	entity, _, err := s.repository.Load(ctx, urlHash)
+	if err == nil {
+		shortURL, ok := entity.(*ShortURL)
+		if !ok {
+			return nil, fmt.Errorf("unknown entity returned while hashing from URL: %T", shortURL)
+		}
+		return shortURL, nil
+	}
+
 	events := []event.Event{
 		&ShortURLCreated{
 			Base: event.Base{
-				ID:      hashFromURL(aLongURL),
+				ID:      urlHash,
 				Version: 0,
 				At:      s.clock.Now(),
 			},
@@ -76,7 +86,7 @@ func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (
 		},
 	}
 
-	err := s.repository.Save(ctx, events...)
+	err = s.repository.Save(ctx, events...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
