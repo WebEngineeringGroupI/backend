@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
 	gohttp "net/http"
 	"os"
 	"strings"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/streadway/amqp"
 	gogrpc "google.golang.org/grpc"
 
 	"github.com/WebEngineeringGroupI/backend/internal/app"
@@ -15,6 +17,8 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/validationsaver"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/broker/rabbitmq"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 )
@@ -110,6 +114,57 @@ func (f *factory) eventBroker() event.Broker {
 		f.eventBrokerSingleton = event.NewBroker()
 	}
 	return f.eventBrokerSingleton
+}
+
+func (f *factory) NewValidationSaver(ctx context.Context) *validationsaver.Service {
+	serializer := json.NewSerializer(
+		&url.ShortURLVerified{},
+		&url.LoadBalancedURLVerified{},
+	)
+	eventRepo := event.NewRepository(&url.ShortURL{}, f.newPostgresDB(serializer), f.eventBroker())
+
+	return validationsaver.NewService(eventRepo, f.newRabbitMQReceiver(ctx), serializer)
+}
+
+func (f *factory) newRabbitMQReceiver(ctx context.Context) *rabbitmq.ReceiverClient {
+	f.defineRabbitMQRouting()
+
+	receiver, err := rabbitmq.NewReceiverClient(ctx, app.RabbitMQConnectionString(), "validator_to_urlshortener")
+	if err != nil {
+		log.Fatalf("unable to create rabbitmq receiver: %s", err)
+	}
+	return receiver
+}
+
+func (f *factory) defineRabbitMQRouting() {
+	conn, err := amqp.Dial(app.RabbitMQConnectionString())
+	if err != nil {
+		log.Fatalf("unable to connect to rabbitmq to define routings: %s", err)
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("unable to create rabbitmq channel to define routings: %s", err)
+	}
+	defer ch.Close()
+
+	f.defineRabbitMQRoutingToReceive(ch)
+}
+
+func (f *factory) defineRabbitMQRoutingToReceive(ch *amqp.Channel) {
+	if err := ch.ExchangeDeclare("validator", "topic", true, false, false, false, nil); err != nil {
+		log.Fatalf("unable to declare exchange to receive events from: %s", err)
+	}
+
+	queueName := "validator_to_urlshortener"
+	if _, err := ch.QueueDeclare(queueName, true, false, false, false, nil); err != nil {
+		log.Fatalf("unable to declare queue to receive events from the validator: %s", err)
+	}
+
+	if err := ch.QueueBind(queueName, "#", "validator", false, nil); err != nil {
+		log.Fatalf("unable to bind queue to receive events from the validator: %s", err)
+	}
 }
 
 func newFactory() *factory {

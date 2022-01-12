@@ -84,7 +84,7 @@ func (f *Factory) defineRabbitMQRoutingToReceive(ch *amqp.Channel) {
 
 func (f *Factory) defineRabbitMQRoutingToSend(ch *amqp.Channel) {
 	if err := ch.ExchangeDeclare("validator", "topic", true, false, false, false, nil); err != nil {
-		log.Fatalf("unable to declare exchange to receive events from: %s", err)
+		log.Fatalf("unable to declare exchange to send events to: %s", err)
 	}
 }
 
