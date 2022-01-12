@@ -12,8 +12,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build-and-publish:
@@ -25,11 +23,11 @@ jobs:
     strategy:
       matrix:
         image:
-          - name: ${{ env.REGISTRY }}/backend
+          - name: ghcr.io/webengineeringgroupi/backend
             dockerfile: ./build/backend/Dockerfile
-          - name: ${{ env.REGISTRY }}/urlshortener_event_sender
+          - name: ghcr.io/webengineeringgroupi/urlshortener_event_sender
             dockerfile: ./build/urlshortener_event_sender/Dockerfile
-          - name: ${{ env.REGISTRY }}/validator
+          - name: ghcr.io/webengineeringgroupi/validator
             dockerfile: ./build/validator/Dockerfile
     steps:
       - name: Checkout repository
