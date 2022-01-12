@@ -23,10 +23,17 @@ clean-db: deps
 
 run-db:
 	docker pull postgres
-	docker run --name postgres --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres &
+	docker run -d --name postgres --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres
+
+run-rabbitmq:
+	docker pull rabbitmq:3-management
+	docker run -d --rm --name rabbitmq -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq:3-management
 
 kill-db:
 	docker rm -f postgres
+
+kill-rabbitmq:
+	docker rm -f rabbitmq
 
 bump:
 	GOPRIVATE="github.com/WebEngineeringGroupI/*" go get -d -u -v -t ./...
@@ -41,9 +48,9 @@ lint: deps
 test-unit: generate
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -skipPackage ./pkg/infrastructure
 
-test-integration: run-db generate
+test-integration: run-db run-rabbitmq generate
 	sleep 10 # Give some time to DB to be launched
 	$(MAKE) clean-db
 	$(MAKE) migrate-db
 	ginkgo -r -race -randomizeAllSpecs -randomizeSuites -trace -progress -cover -p ./pkg/infrastructure
-	$(MAKE) kill-db
+	$(MAKE) kill-db kill-rabbitmq

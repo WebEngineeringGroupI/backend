@@ -9,6 +9,7 @@ import (
 	"xorm.io/xorm"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/redirector"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer"
 )
 
@@ -117,6 +118,50 @@ func (d *DB) Load(ctx context.Context, identity string) (*event.Stream, error) {
 	}
 
 	return event.StreamFrom(events), nil
+}
+
+// PullEvents implements the redirector.OutboxSource interface
+func (d *DB) PullEvents(ctx context.Context) ([]*redirector.OutboxEvent, error) {
+	var eventsInOutbox []DomainEventOutbox
+	err := d.engine.Context(ctx).Find(&eventsInOutbox)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve events from outbox: %w", err)
+	}
+
+	var result []*redirector.OutboxEvent
+	for _, event := range eventsInOutbox {
+		result = append(result, &redirector.OutboxEvent{
+			ID:      event.ID,
+			Payload: event.Payload,
+		})
+	}
+
+	return result, nil
+}
+
+// MarkEventsAsSent implements the redirector.OutboxSource interface
+func (d *DB) MarkEventsAsSent(ctx context.Context, events []*redirector.OutboxEvent) error {
+	eventsToDelete := make([]interface{}, 0, len(events))
+	for _, outboxEvent := range events {
+		eventsToDelete = append(eventsToDelete, &DomainEventOutbox{
+			ID: outboxEvent.ID,
+		})
+	}
+	_, err := d.engine.Transaction(func(session *xorm.Session) (interface{}, error) {
+		for _, event := range eventsToDelete {
+			removedElements, err := session.Context(ctx).Delete(event)
+			if err != nil {
+				return nil, fmt.Errorf("error marking event as sent: %w", err)
+			}
+			if removedElements != 1 {
+				return nil, fmt.Errorf("error marking event as sent, the number of removed elemets is not 1")
+			}
+		}
+
+		return nil, nil
+	})
+
+	return err
 }
 
 func isDuplicateError(err error) bool {
