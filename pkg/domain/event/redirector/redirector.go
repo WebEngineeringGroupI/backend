@@ -10,6 +10,8 @@ type OutboxEvent struct {
 	ID      int
 	Payload []byte
 }
+
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type OutboxSource interface {
 	PullEvents(ctx context.Context) ([]*OutboxEvent, error)
 	MarkEventsAsSent(ctx context.Context, events []*OutboxEvent) error

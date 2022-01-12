@@ -13,10 +13,9 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/application/grpc"
 	"github.com/WebEngineeringGroupI/backend/pkg/application/http"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/metrics"
 )
 
@@ -83,7 +82,7 @@ func (f *factory) postgresConnectionDetails() *postgres.ConnectionDetails {
 	return app.PostgresConnectionDetails()
 }
 
-func (f *factory) newPostgresDB(eventSerializer serializer.Serializer) *postgres.DB {
+func (f *factory) newPostgresDB(eventSerializer event.Serializer) *postgres.DB {
 	db, err := postgres.NewDB(f.postgresConnectionDetails(), eventSerializer)
 	if err != nil {
 		log.Fatalf("unable to create the database connection: %s", err)

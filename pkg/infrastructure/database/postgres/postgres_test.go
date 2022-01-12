@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer/json"
 )
 
 var _ = Describe("Infrastructure / Database / Postgres Event Sourcing", func() {

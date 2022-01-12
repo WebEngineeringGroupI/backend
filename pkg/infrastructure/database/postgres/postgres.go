@@ -10,7 +10,6 @@ import (
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/redirector"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer"
 )
 
 type ConnectionDetails struct {
@@ -34,7 +33,7 @@ func (d *ConnectionDetails) ConnectionString() string {
 
 type DB struct {
 	engine     *xorm.Engine
-	serializer serializer.Serializer
+	serializer event.Serializer
 }
 
 type DomainEvent struct {
@@ -174,7 +173,7 @@ func isDuplicateError(err error) bool {
 	return false
 }
 
-func NewDB(connectionDetails *ConnectionDetails, serializer serializer.Serializer) (*DB, error) {
+func NewDB(connectionDetails *ConnectionDetails, serializer event.Serializer) (*DB, error) {
 	engine, err := xorm.NewEngine("postgres", connectionDetails.ConnectionString())
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection to database: %w", err)

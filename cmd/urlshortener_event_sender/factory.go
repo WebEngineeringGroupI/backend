@@ -9,9 +9,9 @@ import (
 
 	"github.com/WebEngineeringGroupI/backend/internal/app"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/redirector"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/broker/rabbitmq"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer/json"
 )
 
 type Factory struct {

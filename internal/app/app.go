@@ -38,6 +38,10 @@ func RabbitMQConnectionString() string {
 		rabbitMQPort)
 }
 
+func SafeBrowsingAPIKey() string {
+	return mandatoryEnvVarValue("SAFE_BROWSING_API_KEY")
+}
+
 func mandatoryEnvVarValue(variable string) string {
 	value, isSet := os.LookupEnv(variable)
 	if !isSet {

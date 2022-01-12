@@ -9,15 +9,14 @@ import (
 
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/redirector"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event/serializer/json"
 	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/postgres/serializer/json"
 )
 
 var _ = Describe("Infrastructure / Database / Postgres Outbox Source", func() {
 	var (
 		db              *postgres.DB
-		eventSerializer serializer.Serializer
+		eventSerializer event.Serializer
 		ctx             context.Context
 	)
 
@@ -80,7 +79,7 @@ var _ = Describe("Infrastructure / Database / Postgres Outbox Source", func() {
 	})
 })
 
-func eventFromPayloadWith(serializer serializer.Serializer) func(event *redirector.OutboxEvent) event.Event {
+func eventFromPayloadWith(serializer event.Serializer) func(event *redirector.OutboxEvent) event.Event {
 	return func(event *redirector.OutboxEvent) event.Event {
 		unmarshalEvent, err := serializer.UnmarshalEvent(event.Payload)
 		ExpectWithOffset(2, err).ToNot(HaveOccurred())
