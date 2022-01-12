@@ -1,107 +1,131 @@
 package url_test
 
 import (
+	"context"
 	"errors"
+	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
+	domainmocks "github.com/WebEngineeringGroupI/backend/pkg/domain/event/mocks"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
-	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/database/inmemory"
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/mocks"
 )
 
 var _ = Describe("Multiple URL Shortener", func() {
 	var (
+		ctrl       *gomock.Controller
 		shortener  *url.FileURLShortener
-		repository url.ShortURLRepository
-		formatter  *FakeFormatter
-		validator  *FakeURLValidator
-		metrics    *FakeMetrics
+		repository *domainmocks.MockRepository
+		formatter  *mocks.MockFormatter
+		clock      *domainmocks.MockClock
+		metrics    *mocks.MockMetrics
+		ctx        context.Context
 	)
 
 	BeforeEach(func() {
-		repository = inmemory.NewRepository()
-		validator = &FakeURLValidator{returnValidURL: true}
-		formatter = &FakeFormatter{}
-		metrics = &FakeMetrics{}
-		formatter.shouldReturnURLs(aLongURLSet())
-		shortener = url.NewFileURLShortener(repository, validator, metrics, formatter)
+		ctx = context.Background()
+
+		ctrl = gomock.NewController(GinkgoT())
+		metrics = mocks.NewMockMetrics(ctrl)
+		formatter = mocks.NewMockFormatter(ctrl)
+		clock = domainmocks.NewMockClock(ctrl)
+		repository = domainmocks.NewMockRepository(ctrl)
+
+		shortener = url.NewFileURLShortener(repository, metrics, clock, formatter)
+
+		clock.EXPECT().Now().AnyTimes().Return(time.Time{})
+	})
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	Context("when providing multiple long URLs", func() {
+		BeforeEach(func() {
+			formatter.EXPECT().FormatDataToURLs(gomock.Any()).Return(aLongURLSet(), nil)
+		})
+
 		It("generates a hash for each one", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			metrics.EXPECT().RecordFileURLMetrics().Times(1)
+			repository.EXPECT().Save(ctx, gomock.Any()).AnyTimes()
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURLs).To(HaveLen(2))
-			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].Hash).To(HaveLen(8))
 			Expect(shortURLs[1].Hash).To(HaveLen(8))
 		})
 
 		It("contains the real values from the original URLs", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+			metrics.EXPECT().RecordFileURLMetrics().Times(1)
+			repository.EXPECT().Save(ctx, gomock.Any()).AnyTimes()
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(metrics.fileURLMetrics).To(Equal(1))
 			Expect(shortURLs[0].OriginalURL.URL).To(Equal("https://google.com"))
 			Expect(shortURLs[1].OriginalURL.URL).To(Equal("https://unizar.es"))
 		})
 
-		It("generates different short URL hashes for each of the long URLs", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
+		It("saves the URLs as not verified", func() {
+			metrics.EXPECT().RecordFileURLMetrics().Times(1)
+			repository.EXPECT().Save(ctx, gomock.Any()).AnyTimes()
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(metrics.fileURLMetrics).To(Equal(1))
+			Expect(shortURLs[0].OriginalURL.IsValid).To(BeFalse())
+			Expect(shortURLs[1].OriginalURL.IsValid).To(BeFalse())
+		})
+
+		It("generates different short URL hashes for each of the long URLs", func() {
+			metrics.EXPECT().RecordFileURLMetrics().Times(1)
+			repository.EXPECT().Save(ctx, gomock.Any()).AnyTimes()
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
+
+			Expect(err).ToNot(HaveOccurred())
 			Expect(shortURLs[0].Hash).ToNot(Equal(shortURLs[1].Hash))
 		})
 
-		Context("but the provided data is not valid", func() {
-			It("returns the error since it's unable to transform the data", func() {
-				formatter.shouldReturnError(errors.New("unknown error"))
-				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-
-				Expect(err).To(MatchError("unknown error"))
-				Expect(shortURLs).To(BeNil())
-				Expect(metrics.fileURLMetrics).To(Equal(1))
-			})
-		})
-
-		Context("and the provided URL is not valid", func() {
-			It("validates that the provided URL is not valid", func() {
-				validator.shouldReturnValidURL(false)
-				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-
-				Expect(err).To(MatchError(url.ErrInvalidLongURLSpecified))
-				Expect(shortURLs).To(BeNil())
-				Expect(metrics.fileURLMetrics).To(Equal(1))
-			})
-		})
-
-		Context("but the validator returns an error", func() {
-			It("returns the error since it's unable to validate the URL", func() {
-				validator.shouldReturnError(errors.New("unknown error"))
-				shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-
-				Expect(err).To(MatchError("unknown error"))
-				Expect(shortURLs).To(BeNil())
-				Expect(metrics.fileURLMetrics).To(Equal(1))
-			})
-		})
-
 		It("stores the short URL in a repository", func() {
-			shortURLs, err := shortener.HashesFromURLData(aLongURLData())
-			Expect(err).ToNot(HaveOccurred())
+			metrics.EXPECT().RecordFileURLMetrics().Times(1)
+			repository.EXPECT().Save(ctx, []event.Event{
+				&url.ShortURLCreated{
+					Base: event.Base{
+						ID:      "cv6VxVdu",
+						Version: 0,
+						At:      time.Time{},
+					},
+					OriginalURL: "https://google.com",
+				},
+			})
+			repository.EXPECT().Save(ctx, []event.Event{
+				&url.ShortURLCreated{
+					Base: event.Base{
+						ID:      "2sMi6l0Z",
+						Version: 0,
+						At:      time.Time{},
+					},
+					OriginalURL: "https://unizar.es",
+				},
+			})
 
-			firstURL, err := repository.FindShortURLByHash(shortURLs[0].Hash)
+			_, err := shortener.HashesFromURLData(ctx, aLongURLData())
 			Expect(err).ToNot(HaveOccurred())
-			secondURL, err := repository.FindShortURLByHash(shortURLs[1].Hash)
-			Expect(err).ToNot(HaveOccurred())
+		})
+	})
 
-			Expect(firstURL.Hash).To(Equal(shortURLs[0].Hash))
-			Expect(firstURL.OriginalURL.URL).To(Equal("https://google.com"))
-			Expect(secondURL.Hash).To(Equal(shortURLs[1].Hash))
-			Expect(secondURL.OriginalURL.URL).To(Equal("https://unizar.es"))
+	Context("when the provided data is not valid", func() {
+		BeforeEach(func() {
+			formatter.EXPECT().FormatDataToURLs(gomock.Any()).Return(nil, errors.New("unknown error"))
+		})
+		It("returns the error since it's unable to transform the data", func() {
+			metrics.EXPECT().RecordFileURLMetrics().Times(1)
+			shortURLs, err := shortener.HashesFromURLData(ctx, aLongURLData())
+
+			Expect(err).To(MatchError("unknown error"))
+			Expect(shortURLs).To(BeNil())
 		})
 	})
 })

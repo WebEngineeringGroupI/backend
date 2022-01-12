@@ -11,14 +11,16 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/clock"
 )
 
 type server struct {
 	genproto.UnimplementedURLShorteningServer
 	baseDomain   string
 	urlShortener *url.SingleURLShortener
-	loadBalancer *url.LoadBalancer
+	loadBalancer *url.LoadBalancerService
 }
 
 func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServer) error {
@@ -31,7 +33,7 @@ func (s *server) ShortURLs(shortURLsServer genproto.URLShortening_ShortURLsServe
 			return status.Errorf(codes.Internal, err.Error())
 		}
 
-		shortURL, err := s.urlShortener.HashFromURL(request.Url)
+		shortURL, err := s.urlShortener.HashFromURL(shortURLsServer.Context(), request.Url)
 		if err != nil {
 			err := shortURLsServer.Send(&genproto.ShortURLsResponse{
 				Result: &genproto.ShortURLsResponse_Error_{
@@ -66,7 +68,7 @@ func (s *server) ShortSingleURL(ctx context.Context, req *genproto.ShortSingleUR
 		return nil, status.Errorf(codes.FailedPrecondition, "empty URL provided")
 	}
 
-	shortURL, err := s.urlShortener.HashFromURL(req.GetUrl())
+	shortURL, err := s.urlShortener.HashFromURL(ctx, req.GetUrl())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
@@ -78,7 +80,7 @@ func (s *server) ShortSingleURL(ctx context.Context, req *genproto.ShortSingleUR
 
 func (s *server) BalanceURLs(ctx context.Context, req *genproto.BalanceURLsRequest) (*genproto.BalanceURLsResponse, error) {
 	//fixme(fede): use the ctx for cancellation
-	balancedURL, err := s.loadBalancer.ShortURLs(req.GetUrls())
+	balancedURL, err := s.loadBalancer.ShortURLs(ctx, req.GetUrls())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
@@ -87,18 +89,17 @@ func (s *server) BalanceURLs(ctx context.Context, req *genproto.BalanceURLsReque
 
 type Config struct {
 	BaseDomain                 string
-	ShortURLRepository         url.ShortURLRepository
-	URLValidator               url.Validator
+	ShortURLRepository         event.Repository
 	CustomMetrics              url.Metrics
-	LoadBalancedURLsRepository url.LoadBalancedURLsRepository
+	LoadBalancedURLsRepository event.Repository
 }
 
 func NewServer(config Config) *grpc.Server {
 	grpcServer := grpc.NewServer()
 	srv := &server{
 		baseDomain:   config.BaseDomain,
-		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, config.URLValidator, config.CustomMetrics),
-		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository),
+		urlShortener: url.NewSingleURLShortener(config.ShortURLRepository, clock.NewFromSystem(), config.CustomMetrics),
+		loadBalancer: url.NewLoadBalancer(config.LoadBalancedURLsRepository, clock.NewFromSystem()),
 	}
 
 	genproto.RegisterURLShorteningServer(grpcServer, srv)

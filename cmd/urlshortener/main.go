@@ -18,6 +18,7 @@ func main() {
 
 	launchHTTPServer(ctx, factory, &wg)
 	launchGRPCServer(ctx, factory, &wg)
+	launchValidationSaver(ctx, factory, &wg)
 
 	<-ctx.Done()
 	log.Println("attempting graceful shutdown...")
@@ -69,6 +70,21 @@ func launchGRPCServer(ctx context.Context, factory *factory, wg *sync.WaitGroup)
 		<-ctx.Done()
 		grpcServer.GracefulStop()
 		log.Println("closed gRPC server")
+	}()
+}
+
+func launchValidationSaver(ctx context.Context, f *factory, wg *sync.WaitGroup) {
+	validationSaverService := f.NewValidationSaver(ctx)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Println("launching validation saver service")
+		err := validationSaverService.Start(ctx)
+		if err != nil {
+			log.Fatalf("unable to start validation saver service: %s", err)
+		}
+		log.Println("closed validation saver service")
 	}()
 }
 

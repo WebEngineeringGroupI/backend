@@ -1,6 +1,7 @@
 package reachable_test
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -14,8 +15,10 @@ import (
 var _ = Describe("Reachable", func() {
 	var (
 		validator *reachable.Validator
+		ctx       context.Context
 	)
 	BeforeEach(func() {
+		ctx = context.Background()
 		validator = reachable.NewValidator(http.DefaultClient, 2*time.Second)
 	})
 
@@ -23,7 +26,7 @@ var _ = Describe("Reachable", func() {
 		done := make(chan interface{})
 		go func() {
 			defer GinkgoRecover()
-			isValid, err := validator.ValidateURLs(validURLsToValidate())
+			isValid, err := validator.ValidateURLs(ctx, validURLsToValidate())
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(isValid).To(BeTrue())
@@ -37,7 +40,7 @@ var _ = Describe("Reachable", func() {
 			done := make(chan interface{})
 			go func() {
 				defer GinkgoRecover()
-				isValid, err := validator.ValidateURLs(unreachableURLsToValidate())
+				isValid, err := validator.ValidateURLs(ctx, unreachableURLsToValidate())
 
 				Expect(err).To(MatchError(url.ErrUnableToValidateURLs))
 				Expect(err.Error()).To(ContainSubstring("connection refused"))
@@ -52,7 +55,7 @@ var _ = Describe("Reachable", func() {
 			done := make(chan interface{})
 			go func() {
 				defer GinkgoRecover()
-				isValid, err := validator.ValidateURLs(errorURLsToValidate())
+				isValid, err := validator.ValidateURLs(ctx, errorURLsToValidate())
 
 				Expect(err).To(MatchError(url.ErrUnableToValidateURLs))
 				Expect(err.Error()).To(ContainSubstring("404 Not Found"))
@@ -67,7 +70,7 @@ var _ = Describe("Reachable", func() {
 			done := make(chan interface{})
 			go func() {
 				defer GinkgoRecover()
-				isValid, err := validator.ValidateURLs(invalidCertificateURLsToValidate())
+				isValid, err := validator.ValidateURLs(ctx, invalidCertificateURLsToValidate())
 
 				Expect(err).To(MatchError(url.ErrUnableToValidateURLs))
 				Expect(err.Error()).To(ContainSubstring("certificate signed by unknown authority"))
@@ -98,5 +101,5 @@ func errorURLsToValidate() []string {
 }
 
 func invalidCertificateURLsToValidate() []string {
-	return append(validURLsToValidate(), "https://unizar.es")
+	return append(validURLsToValidate(), "https://self-signed.badssl.com/")
 }

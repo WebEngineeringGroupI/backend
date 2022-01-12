@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -9,7 +10,7 @@ type Validator struct {
 	allowedPrefixes []string
 }
 
-func (v *Validator) ValidateURLs(urls []string) (bool, error) {
+func (v *Validator) ValidateURLs(ctx context.Context, urls []string) (bool, error) {
 	for _, prefix := range v.allowedPrefixes {
 		for _, url := range urls {
 			if strings.HasPrefix(url, prefix) {

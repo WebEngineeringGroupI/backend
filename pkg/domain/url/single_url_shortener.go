@@ -1,16 +1,23 @@
 package url
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
 	"fmt"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
+)
+
+var (
+	ErrShortURLNotFound = errors.New("short url not found")
 )
 
 type SingleURLShortener struct {
-	repository ShortURLRepository
-	validator  Validator
+	repository event.Repository
 	metrics    Metrics
+	clock      event.Clock
 }
 
 type OriginalURL struct {
@@ -21,37 +28,70 @@ type OriginalURL struct {
 type ShortURL struct {
 	Hash        string
 	OriginalURL OriginalURL
+	Clicks      int
+}
+
+func shortURLFromEvents(events ...event.Event) *ShortURL {
+	url := &ShortURL{}
+	for _, e := range events {
+		_ = url.On(e)
+	}
+	return url
+}
+
+func (s *ShortURL) On(evt event.Event) error {
+	switch e := evt.(type) {
+	case *ShortURLCreated:
+		s.Hash = e.EntityID()
+		s.OriginalURL = OriginalURL{URL: e.OriginalURL, IsValid: false}
+		s.Clicks = 0
+	case *ShortURLVerified:
+		s.OriginalURL = OriginalURL{
+			URL:     s.OriginalURL.URL,
+			IsValid: true,
+		}
+	case *ShortURLClicked:
+		s.Clicks++
+	default:
+		return event.ErrUnhandledEvent
+	}
+	return nil
 }
 
 var (
 	ErrInvalidLongURLSpecified = errors.New("invalid long URL specified")
 )
 
-// FIXME(fede): Rename to something like ShortURLFromLong
-func (s *SingleURLShortener) HashFromURL(aLongURL string) (*ShortURL, error) {
+func (s *SingleURLShortener) HashFromURL(ctx context.Context, aLongURL string) (*ShortURL, error) {
 	s.metrics.RecordSingleURLMetrics()
-	isValidURL, err := s.validator.ValidateURLs([]string{aLongURL})
-	if err != nil {
-		return nil, err
-	}
-	if !isValidURL {
-		return nil, ErrInvalidLongURLSpecified
+
+	urlHash := hashFromURL(aLongURL)
+	entity, _, err := s.repository.Load(ctx, urlHash)
+	if err == nil {
+		shortURL, ok := entity.(*ShortURL)
+		if !ok {
+			return nil, fmt.Errorf("unknown entity returned while hashing from URL: %T", shortURL)
+		}
+		return shortURL, nil
 	}
 
-	shortURL := &ShortURL{
-		Hash: hashFromURL(aLongURL),
-		OriginalURL: OriginalURL{
-			URL:     aLongURL,
-			IsValid: true,
+	events := []event.Event{
+		&ShortURLCreated{
+			Base: event.Base{
+				ID:      urlHash,
+				Version: 0,
+				At:      s.clock.Now(),
+			},
+			OriginalURL: aLongURL,
 		},
 	}
 
-	err = s.repository.SaveShortURL(shortURL) // FIXME(fede): test this error
+	err = s.repository.Save(ctx, events...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to save shortURL in the repository: %w", err)
 	}
 
-	return shortURL, nil
+	return shortURLFromEvents(events...), nil
 }
 
 func hashFromURL(aLongURL string) string {
@@ -61,10 +101,10 @@ func hashFromURL(aLongURL string) string {
 	return hash
 }
 
-func NewSingleURLShortener(repository ShortURLRepository, validator Validator, metrics Metrics) *SingleURLShortener {
+func NewSingleURLShortener(repository event.Repository, clock event.Clock, metrics Metrics) *SingleURLShortener {
 	return &SingleURLShortener{
 		repository: repository,
-		validator:  validator,
+		clock:      clock,
 		metrics:    metrics,
 	}
 }

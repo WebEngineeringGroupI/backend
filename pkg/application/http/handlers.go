@@ -12,6 +12,7 @@ import (
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/redirect"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url"
 	"github.com/WebEngineeringGroupI/backend/pkg/domain/url/formatter"
+	"github.com/WebEngineeringGroupI/backend/pkg/infrastructure/clock"
 )
 
 type HandlerRepository struct {
@@ -24,7 +25,7 @@ type VariableExtractor interface {
 }
 
 func (e *HandlerRepository) shortener() http.HandlerFunc {
-	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, e.config.URLValidator, e.config.CustomMetrics)
+	urlShortener := url.NewSingleURLShortener(e.config.ShortURLRepository, clock.NewFromSystem(), e.config.CustomMetrics)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn shortURLDataIn
@@ -38,7 +39,7 @@ func (e *HandlerRepository) shortener() http.HandlerFunc {
 			return
 		}
 
-		shortURL, err := urlShortener.HashFromURL(dataIn.URL)
+		shortURL, err := urlShortener.HashFromURL(request.Context(), dataIn.URL)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) {
 			log.Print(err.Error())
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -68,7 +69,7 @@ func (e *HandlerRepository) shortener() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
-	loadBalancerCreator := url.NewLoadBalancer(e.config.LoadBalancedURLsRepository)
+	loadBalancerCreator := url.NewLoadBalancer(e.config.LoadBalancedURLsRepository, clock.NewFromSystem())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var dataIn loadBalancerURLDataIn
@@ -78,7 +79,7 @@ func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
 			return
 		}
 
-		shortURL, err := loadBalancerCreator.ShortURLs(dataIn.URLs)
+		shortURL, err := loadBalancerCreator.ShortURLs(request.Context(), dataIn.URLs)
 		if errors.Is(err, url.ErrNoURLsSpecified) {
 			log.Print(err.Error())
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -108,18 +109,18 @@ func (e *HandlerRepository) loadBalancingURLCreator() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) redirector() http.HandlerFunc {
-	redirector := redirect.NewRedirector(e.config.ShortURLRepository, e.config.URLValidator)
+	redirector := redirect.NewRedirector(e.config.ShortURLRepository, clock.NewFromSystem())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		shortURLHash := e.variableExtractor.Extract(request, "hash")
 
-		originalURL, err := redirector.ReturnOriginalURL(shortURLHash)
+		originalURL, err := redirector.ReturnOriginalURL(request.Context(), shortURLHash)
 		if errors.Is(err, url.ErrShortURLNotFound) {
 			writer.WriteHeader(http.StatusNotFound)
 			return
 		}
 		if err != nil {
-			writer.WriteHeader(http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -128,18 +129,18 @@ func (e *HandlerRepository) redirector() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) loadBalancingRedirector() http.HandlerFunc {
-	redirector := redirect.NewLoadBalancerRedirector(e.config.LoadBalancedURLsRepository)
+	redirector := redirect.NewLoadBalancerRedirectorService(e.config.LoadBalancedURLsRepository)
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		hash := e.variableExtractor.Extract(request, "hash")
 
-		originalURL, err := redirector.ReturnAValidOriginalURL(hash)
+		originalURL, err := redirector.ReturnAValidOriginalURL(request.Context(), hash)
 		if errors.Is(err, url.ErrValidURLNotFound) {
-			writer.WriteHeader(http.StatusNotFound)
+			http.Error(writer, err.Error(), http.StatusNotFound)
 			return
 		}
 		if err != nil {
-			writer.WriteHeader(http.StatusInternalServerError)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -154,11 +155,11 @@ func (e *HandlerRepository) notFound() http.HandlerFunc {
 }
 
 func (e *HandlerRepository) csvShortener() http.HandlerFunc {
-	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.URLValidator, e.config.CustomMetrics, formatter.NewCSV())
+	csvShortener := url.NewFileURLShortener(e.config.ShortURLRepository, e.config.CustomMetrics, clock.NewFromSystem(), formatter.NewCSV())
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		data := []byte(request.FormValue("file"))
-		shortURLs, err := csvShortener.HashesFromURLData(data)
+		shortURLs, err := csvShortener.HashesFromURLData(request.Context(), data)
 		if errors.Is(err, url.ErrInvalidLongURLSpecified) || errors.Is(err, url.ErrUnableToConvertDataToLongURLs) {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return

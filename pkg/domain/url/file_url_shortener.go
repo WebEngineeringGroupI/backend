@@ -1,24 +1,28 @@
 package url
 
 import (
+	"context"
 	"errors"
 	"fmt"
+
+	"github.com/WebEngineeringGroupI/backend/pkg/domain/event"
 )
 
 var ErrUnableToConvertDataToLongURLs = errors.New("unable to convert data to long urls")
 
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Formatter interface {
 	FormatDataToURLs(data []byte) ([]string, error)
 }
 
 type FileURLShortener struct {
-	repository ShortURLRepository
-	validator  Validator
+	repository event.Repository
 	formatter  Formatter
 	metrics    Metrics
+	clock      event.Clock
 }
 
-func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
+func (s *FileURLShortener) HashesFromURLData(ctx context.Context, data []byte) ([]ShortURL, error) {
 	var shortURLs []ShortURL
 	s.metrics.RecordFileURLMetrics()
 
@@ -27,40 +31,33 @@ func (s *FileURLShortener) HashesFromURLData(data []byte) ([]ShortURL, error) {
 		return nil, err
 	}
 
-	urlsAreValid, err := s.validator.ValidateURLs(longURLs)
-	if err != nil {
-		return nil, err
-	}
-	if !urlsAreValid {
-		return nil, ErrInvalidLongURLSpecified
-	}
-
 	shortURLs = make([]ShortURL, 0, len(longURLs))
 	for _, longURL := range longURLs {
-		shortURL := ShortURL{
-			Hash: hashFromURL(longURL),
-			OriginalURL: OriginalURL{
-				URL:     longURL,
-				IsValid: true,
+		events := []event.Event{
+			&ShortURLCreated{
+				Base: event.Base{
+					ID:      hashFromURL(longURL),
+					Version: 0,
+					At:      s.clock.Now(),
+				},
+				OriginalURL: longURL,
 			},
 		}
-
-		err := s.repository.SaveShortURL(&shortURL)
+		shortURLs = append(shortURLs, *shortURLFromEvents(events...))
+		err = s.repository.Save(ctx, events...)
 		if err != nil {
-			return nil, fmt.Errorf("unable to save URL '%s' to repository: %w", longURL, err)
+			return nil, fmt.Errorf("unable to save events to repository: %w", err)
 		}
-
-		shortURLs = append(shortURLs, shortURL)
 	}
 
 	return shortURLs, nil
 }
 
-func NewFileURLShortener(repository ShortURLRepository, validator Validator, metrics Metrics, formatter Formatter) *FileURLShortener {
+func NewFileURLShortener(repository event.Repository, metrics Metrics, clock event.Clock, formatter Formatter) *FileURLShortener {
 	return &FileURLShortener{
 		repository: repository,
-		validator:  validator,
 		formatter:  formatter,
 		metrics:    metrics,
+		clock:      clock,
 	}
 }
